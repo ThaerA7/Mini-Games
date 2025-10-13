@@ -1,7 +1,4 @@
-// src\components\dialogs\Sudoku\SudokuDialog.tsx
 import React from 'react'
-
-export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'extreme' | '16x16'
 
 type DialogProps = {
   open: boolean
@@ -19,13 +16,27 @@ export default function Dialog({ open, onOpenChange, title, description, childre
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onOpenChange])
 
+  // Keep the cool display font
+  React.useEffect(() => {
+    const id = 'sudoku-dialog-font-audiowide'
+    if (!document.getElementById(id)) {
+      const link = document.createElement('link')
+      link.id = id
+      link.rel = 'stylesheet'
+      link.href = 'https://fonts.googleapis.com/css2?family=Audiowide&display=swap'
+      document.head.appendChild(link)
+    }
+  }, [])
+
   if (!open) return null
+
+  const panelPadding = 20
 
   const overlay: React.CSSProperties = {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(3px)',
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(4px)',
     display: 'grid',
     placeItems: 'center',
     zIndex: 1000,
@@ -35,35 +46,58 @@ export default function Dialog({ open, onOpenChange, title, description, childre
   const panel: React.CSSProperties = {
     width: 'min(520px, 92vw)',
     borderRadius: 16,
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05))',
+    background: 'linear-gradient(180deg, rgba(18,18,21,0.95), rgba(18,18,21,0.9))',
     border: '1px solid rgba(255,255,255,0.12)',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)',
-    padding: 20,
+    boxShadow: '0 18px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
+    padding: panelPadding,
     color: 'white',
     position: 'relative',
   }
 
-  const closeBtn: React.CSSProperties = {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(255,255,255,0.06)',
-    cursor: 'pointer',
-    fontSize: 18,
-    color: 'white',
+  const titleStyle: React.CSSProperties = {
+    margin: 0,
+    fontSize: 35,
+    lineHeight: 1.2,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    fontFamily: '"Audiowide","Orbitron","Russo One",system-ui,Segoe UI,Roboto,sans-serif',
+    background: 'linear-gradient(90deg, #A7F3D0 0%, #FDE68A 100%)',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    color: 'transparent',
+  }
+
+  const descStyle: React.CSSProperties = {
+    marginTop: 6,
+    opacity: 0.85,
+    textAlign: 'center',
+  }
+
+  // Full-width divider under the header
+  const divider: React.CSSProperties = {
+    marginTop: 12,
+    height: 1,
+    background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 15%, rgba(255,255,255,0.2) 85%, rgba(255,255,255,0) 100%)',
+    position: 'relative',
+    left: -panelPadding,
+    width: `calc(100% + ${panelPadding * 2}px)`,
+  }
+
+  const content: React.CSSProperties = {
+    marginTop: 16,
   }
 
   return (
     <div role="dialog" aria-modal="true" onClick={() => onOpenChange(false)} style={overlay}>
       <div onClick={(e) => e.stopPropagation()} style={panel}>
-        <button aria-label="Close" onClick={() => onOpenChange(false)} style={closeBtn}>×</button>
-        {title && <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>{title}</h3>}
-        {description && <p style={{ marginTop: 6, opacity: 0.8 }}>{description}</p>}
-        {children}
+        {(title || description) && (
+          <div>
+            {title && <h3 style={titleStyle}>{title}</h3>}
+            {description && <p style={descStyle}>{description}</p>}
+            <div style={divider} />
+          </div>
+        )}
+        <div style={content}>{children}</div>
       </div>
     </div>
   )
