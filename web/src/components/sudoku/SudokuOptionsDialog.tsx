@@ -1,5 +1,5 @@
 import React from 'react'
-import Dialog from './SudokuDialog'
+import Dialog from '../sudoku/SudokuDialog.tsx'
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'extreme' | '16x16'
 
@@ -120,6 +120,8 @@ export default function SudokuOptionsDialog({ open, onOpenChange, onStartNew, on
     boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
     padding: 8,
     zIndex: 10,
+    display: 'grid',
+    gap: 6,
   }
 
   const item: React.CSSProperties = {

@@ -1,6 +1,6 @@
 // src/components/BoxesGrid.tsx
 import React from 'react'
-import SudokuOptionsDialog from './dialogs/Sudoku/SudokuOptionsDialog'
+import SudokuOptionsDialog from './sudoku/SudokuOptionsDialog'
 import SudokuImg from '../assets/Sudoku.png'
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'extreme' | '16x16'
