@@ -1,9 +1,14 @@
 // src/components/BoxesGrid.tsx
 import React from 'react'
+import SudokuOptionsDialog from './dialogs/Sudoku/SudokuOptionsDialog'
+import SudokuImg from '../assets/Sudoku.png'
+
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'extreme' | '16x16'
 
 export default function BoxesGrid() {
   const boxes = Array.from({ length: 15 })
   const [pressedIndex, setPressedIndex] = React.useState<number | null>(null)
+  const [sudokuOpen, setSudokuOpen] = React.useState(false)
 
   const baseBoxStyle: React.CSSProperties = {
     aspectRatio: '1 / 1',
@@ -14,7 +19,7 @@ export default function BoxesGrid() {
     transition: 'transform 120ms ease, filter 120ms ease, box-shadow 120ms ease',
     cursor: 'pointer',
     willChange: 'transform, filter',
-    touchAction: 'manipulation', // removes 300ms tap delay on some mobiles
+    touchAction: 'manipulation',
   }
 
   const getBoxStyle = (isPressed: boolean): React.CSSProperties => ({
@@ -27,44 +32,33 @@ export default function BoxesGrid() {
   const handlePointerDown = (i: number) => setPressedIndex(i)
   const clearPress = () => setPressedIndex(null)
 
+  // Wire these to your game logic / router / Phaser
+  const startNew = (difficulty: Difficulty) => {
+    setSudokuOpen(false)
+    console.log('Start new Sudoku:', difficulty)
+  }
+  const continueGame = () => {
+    setSudokuOpen(false)
+    console.log('Continue Sudoku')
+  }
+
   return (
-    <section
-      style={{
-        width: '100%',
-        paddingTop: 20,
-        paddingBottom: 20,
-        paddingLeft: 20,
-        paddingRight: 20,
-      }}
-    >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)', // exactly 5 per row
-          gap: 20,
-        }}
-      >
+    <section style={{ width: '100%', padding: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20 }}>
         {boxes.map((_, i) =>
           i === 0 ? (
-            // First grid item: image card with matching rounded edges and press animation
             <div
               key="sudoku"
-              style={{
-                ...getBoxStyle(pressedIndex === i),
-                position: 'relative',
-                overflow: 'hidden',
-              }}
+              style={{ ...getBoxStyle(pressedIndex === i), position: 'relative', overflow: 'hidden' }}
               onPointerDown={() => handlePointerDown(i)}
               onPointerUp={clearPress}
               onPointerLeave={clearPress}
               onPointerCancel={clearPress}
-              onClick={() => {
-                // optional: do something on click
-                // console.log('Clicked box', i)
-              }}
+              onClick={() => setSudokuOpen(true)}
+              aria-label="Open Sudoku options"
             >
               <img
-                src="src/assets/Sudoku.png"
+                src={SudokuImg}
                 alt="Sudoku"
                 style={{
                   position: 'absolute',
@@ -74,7 +68,7 @@ export default function BoxesGrid() {
                   objectFit: 'cover',
                   display: 'block',
                   userSelect: 'none',
-                  pointerEvents: 'none', // let the container handle events
+                  pointerEvents: 'none',
                 }}
               />
             </div>
@@ -86,14 +80,17 @@ export default function BoxesGrid() {
               onPointerUp={clearPress}
               onPointerLeave={clearPress}
               onPointerCancel={clearPress}
-              onClick={() => {
-                // optional: do something on click
-                // console.log('Clicked box', i)
-              }}
             />
           )
         )}
       </div>
+
+      <SudokuOptionsDialog
+        open={sudokuOpen}
+        onOpenChange={setSudokuOpen}
+        onStartNew={startNew}
+        onContinue={continueGame}
+      />
     </section>
   )
 }
