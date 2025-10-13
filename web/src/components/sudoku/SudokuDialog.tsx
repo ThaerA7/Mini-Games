@@ -1,3 +1,4 @@
+// src\components\sudoku\SudokuDialog.tsx
 import React from 'react'
 
 type DialogProps = {

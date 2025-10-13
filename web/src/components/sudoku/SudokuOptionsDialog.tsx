@@ -1,4 +1,6 @@
+// src\components\sudoku\SudokuOptionsDialog.tsx
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import Dialog from '../sudoku/SudokuDialog.tsx'
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'extreme' | '16x16'
@@ -93,6 +95,7 @@ const continueColor = '#3b82f6' // blue
 const closeColor = '#4b5563'    // gray
 
 export default function SudokuOptionsDialog({ open, onOpenChange, onStartNew, onContinue }: Props) {
+  const navigate = useNavigate()
   useUIButtonFont()
 
   const [menuOpen, setMenuOpen] = React.useState(false)
@@ -168,8 +171,10 @@ export default function SudokuOptionsDialog({ open, onOpenChange, onStartNew, on
                   role="menuitem"
                   style={item}
                   onClick={() => {
-                    onStartNew(lvl)
+                    onStartNew(lvl)           // keep your existing logic
                     setMenuOpen(false)
+                    onOpenChange(false)
+                    navigate('/sudoku')      // ➜ go to Sudoku page
                   }}
                 >
                   {lvl === '16x16' ? '16×16' : cap(lvl)}
@@ -179,7 +184,14 @@ export default function SudokuOptionsDialog({ open, onOpenChange, onStartNew, on
           )}
         </div>
 
-        <FloatingButton bg={continueColor} onClick={onContinue}>
+        <FloatingButton
+          bg={continueColor}
+          onClick={() => {
+            onContinue()                    // keep your existing logic
+            onOpenChange(false)
+            navigate('/sudoku')             // ➜ go to Sudoku page
+          }}
+        >
           Continue
         </FloatingButton>
 
