@@ -1,18 +1,15 @@
-import { useEffect, useRef } from 'react'
-import { createPhaserGame } from './phaser/Game'
+// src/App.tsx
+import TopBar from './components/TopBar'
+import BoxesGrid from './components/BoxesGrid'
 
 export default function App() {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    const game = createPhaserGame(containerRef.current.id)
-    return () => game.destroy(true)
-  }, [])
-
   return (
-    <div style={{ height: '100vh', display: 'grid', placeItems: 'center' }}>
-      <div id="game-root" ref={containerRef} style={{ width: 360, height: 640 }} />
+    <div style={{ minHeight: '100dvh', background: '#0b1020', color: '#e5e7eb' }}>
+      <TopBar />
+      <main>
+        {/* Grid now occupies the game's spot */}
+        <BoxesGrid />
+      </main>
     </div>
   )
 }

@@ -1,3 +1,4 @@
+// src/phaser/Game.ts
 import Phaser from 'phaser'
 import { GameScene } from './GameScene'
 
@@ -5,12 +6,12 @@ export function createPhaserGame(parent: string) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0b1020', // match your page background so it doesn't look like a box
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: 360,
-      height: 640
+      width: 1280,
+      height: 720
     },
     fps: { target: 60, forceSetTimeOut: true },
     scene: [GameScene]
