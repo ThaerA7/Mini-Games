@@ -171,11 +171,12 @@ export default function SudokuOptionsDialog({ open, onOpenChange, onStartNew, on
                   role="menuitem"
                   style={item}
                   onClick={() => {
-                    onStartNew(lvl)           // keep your existing logic
-                    setMenuOpen(false)
-                    onOpenChange(false)
-                    navigate('/sudoku')      // ➜ go to Sudoku page
-                  }}
+  onStartNew(lvl)
+  localStorage.setItem('sudoku:difficulty', lvl)           // persist
+  setMenuOpen(false)
+  onOpenChange(false)
+  navigate('/sudoku', { state: { difficulty: lvl } })      // pass via state
+}}
                 >
                   {lvl === '16x16' ? '16×16' : cap(lvl)}
                 </button>
@@ -187,10 +188,11 @@ export default function SudokuOptionsDialog({ open, onOpenChange, onStartNew, on
         <FloatingButton
           bg={continueColor}
           onClick={() => {
-            onContinue()                    // keep your existing logic
-            onOpenChange(false)
-            navigate('/sudoku')             // ➜ go to Sudoku page
-          }}
+  onContinue()
+  onOpenChange(false)
+  const last = localStorage.getItem('sudoku:difficulty') || 'Medium'
+  navigate('/sudoku', { state: { difficulty: last } })
+}}
         >
           Continue
         </FloatingButton>

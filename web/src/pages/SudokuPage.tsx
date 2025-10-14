@@ -1,7 +1,15 @@
 import TopBar from '../components/TopBar'
 import SudokuBoard from '../components/sudoku/SudokuBoard'
+import { useLocation } from 'react-router-dom'
 
 export default function SudokuPage() {
+  const location = useLocation();
+  const state = location.state as { difficulty?: string } | null;
+  const difficulty =
+    state?.difficulty ??
+    (typeof window !== 'undefined' ? localStorage.getItem('sudoku:difficulty') : null) ??
+    'Medium';
+
   return (
     <div
       style={{
@@ -21,7 +29,7 @@ export default function SudokuPage() {
           padding: 16,
         }}
       >
-        <SudokuBoard />
+        <SudokuBoard difficulty={difficulty} />
       </main>
     </div>
   )
