@@ -61,6 +61,9 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   const [isSolved, setIsSolved] = React.useState(false);
   const [showSolvedOverlay, setShowSolvedOverlay] = React.useState(false);
 
+  // Hints used
+  const [hintsUsed, setHintsUsed] = React.useState(0);
+
   // Generate/adopt base asynchronously so the loader can render
   const loadBase = React.useCallback(async () => {
     setIsLoading(true);
@@ -88,7 +91,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   React.useEffect(() => {
     loadBase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial, difficulty]);
+    }, [initial, difficulty]);
 
   // Board state (depends on base)
   const [grid, setGrid] = React.useState<number[][]>([]);
@@ -145,6 +148,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     setPencilMode(false);
     setIsSolved(false);
     setShowSolvedOverlay(false);
+    setHintsUsed(0);
     // keep hardMode as user preference across games
   }, [base]);
 
@@ -230,17 +234,12 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
     let solvedFlag = true;
     if (solution) {
-      solvedFlag = grid.every((row, r) =>
-        row.every((v, c) => v === solution[r][c])
-      );
+      solvedFlag = grid.every((row, r) => row.every((v, c) => v === solution[r][c]));
     } else {
       outer: for (let r = 0; r < grid.length; r++) {
         for (let c = 0; c < grid.length; c++) {
           const v = grid[r][c];
-          if (v === 0 || hasConflict(grid, r, c, v)) {
-            solvedFlag = false;
-            break outer;
-          }
+          if (v === 0 || hasConflict(grid, r, c, v)) { solvedFlag = false; break outer; }
         }
       }
     }
@@ -405,6 +404,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
       const nsSel = findNakedSingle(g, selected);
       if (nsSel) {
         placeValue(nsSel.r, nsSel.c, nsSel.v);
+        setHintsUsed((u) => u + 1);
         showHintMsg("Hint: Naked single");
         return;
       }
@@ -412,6 +412,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     const ns = findNakedSingle(g, null);
     if (ns) {
       placeValue(ns.r, ns.c, ns.v);
+      setHintsUsed((u) => u + 1);
       showHintMsg("Hint: Naked single");
       return;
     }
@@ -419,6 +420,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     const hs = findHiddenSingle(g);
     if (hs) {
       placeValue(hs.r, hs.c, hs.v);
+      setHintsUsed((u) => u + 1);
       showHintMsg("Hint: Hidden single");
       return;
     }
@@ -435,6 +437,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
       !givens[selected.r][selected.c]
     ) {
       placeValue(selected.r, selected.c, solved[selected.r][selected.c]);
+      setHintsUsed((u) => u + 1);
       showHintMsg("Hint: Solved cell");
       return;
     }
@@ -442,6 +445,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     const cell = findBestEmptyCell(g);
     if (cell) {
       placeValue(cell.r, cell.c, solved[cell.r][cell.c]);
+      setHintsUsed((u) => u + 1);
       showHintMsg("Hint: Solved cell");
       return;
     }
@@ -462,6 +466,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     setPencilMode(false);
     setIsSolved(false);
     setShowSolvedOverlay(false);
+    setHintsUsed(0);
   };
 
   const newPuzzle = async () => {
@@ -480,6 +485,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     setIsLoading(false);
     setIsSolved(false);
     setShowSolvedOverlay(false);
+    setHintsUsed(0);
   };
 
   // ——— Render small digits inside a cell (either user notes OR auto-candidates)
@@ -778,12 +784,11 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
               userSelect: "none",
             }}
           >
-            <div style={{ justifySelf: "start", opacity: 0.9 }}>
-              Mistakes: {hardMode ? "—" : mistakes}
+            <div style={{ justifySelf: "start", display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', opacity: 0.9 }}>
+              <span> Mistakes: {hardMode ? "—" : mistakes}</span>
               {!hardMode && (
                 <span
                   style={{
-                    marginLeft: 10,
                     padding: "2px 6px",
                     fontSize: 11,
                     lineHeight: 1.2,
@@ -798,6 +803,21 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                   Filled: {entriesCount}
                 </span>
               )}
+              <span
+                style={{
+                  padding: "2px 6px",
+                  fontSize: 11,
+                  lineHeight: 1.2,
+                  borderRadius: 8,
+                  background: "rgba(59,130,246,0.12)",
+                  border: "1px solid rgba(59,130,246,0.35)",
+                  color: "rgba(191,219,254,0.95)",
+                  verticalAlign: "middle",
+                }}
+                title="Number of hints you've used in this puzzle"
+              >
+                Hints: {hintsUsed}
+              </span>
             </div>
             <div style={{ justifySelf: "center", opacity: 0.95 }}>
               {String(difficulty).toUpperCase()}
@@ -812,13 +832,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           </div>
 
           {/* Board + overlay wrapper */}
-          <div
-            style={{
-              position: "relative",
-              width: containerSize,
-              height: containerSize,
-            }}
-          >
+          <div style={{ position: "relative", width: containerSize, height: containerSize }}>
             {/* Board */}
             <div
               ref={boardRef}
@@ -837,9 +851,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                 boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
                 overflow: "hidden",
                 userSelect: "none",
-                filter: showSolvedOverlay
-                  ? "blur(4px) saturate(0.8) brightness(0.9)"
-                  : "none",
+                filter: showSolvedOverlay ? "blur(4px) saturate(0.8) brightness(0.9)" : "none",
                 pointerEvents: showSolvedOverlay ? "none" : "auto",
                 transition: "filter 200ms ease",
               }}
@@ -870,8 +882,8 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                     bg = "rgba(59,130,246,0.18)";
                   }
 
-                  const givenColor = "rgba(255,255,255,0.78)"; 
-                  const entryColor = "rgba(147, 197, 253, 0.95)";
+                  const givenColor = "rgba(147, 197, 253, 0.95)"; // blue-300-ish
+                  const entryColor = "rgba(255,255,255,0.78)";
                   const baseNumberColor = given ? givenColor : entryColor;
                   const numberColor = isActiveSameNumber
                     ? "rgba(255,255,255,0.98)"
@@ -987,13 +999,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 900,
-                      letterSpacing: 0.2,
-                    }}
-                  >
+                  <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.2 }}>
                     Puzzle Solved!
                   </div>
                   <div style={{ opacity: 0.85, marginTop: 4, fontSize: 13 }}>
@@ -1011,23 +1017,23 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                       flexWrap: "wrap",
                     }}
                   >
-                    {[
-                      {
-                        k: "time",
-                        name: "Time",
-                        val: formatTime(seconds),
-                      },
-                      {
-                        k: "mistakes",
-                        name: "Mistakes",
-                        val: String(mistakes),
-                      },
-                      {
-                        k: "difficulty",
-                        name: "Difficulty",
-                        val: label,
-                      },
-                    ].map((s) => (
+                    {[{
+                      k: "time",
+                      name: "Time",
+                      val: formatTime(seconds),
+                    }, {
+                      k: "mistakes",
+                      name: "Mistakes",
+                      val: String(mistakes),
+                    }, {
+                      k: "hints",
+                      name: "Hints",
+                      val: String(hintsUsed),
+                    }, {
+                      k: "difficulty",
+                      name: "Difficulty",
+                      val: label,
+                    }].map((s) => (
                       <div
                         key={s.k}
                         style={{
@@ -1038,12 +1044,8 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                           minWidth: 110,
                         }}
                       >
-                        <div style={{ fontSize: 11, opacity: 0.85 }}>
-                          {s.name}
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 800 }}>
-                          {s.val}
-                        </div>
+                        <div style={{ fontSize: 11, opacity: 0.85 }}>{s.name}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800 }}>{s.val}</div>
                       </div>
                     ))}
                   </div>
@@ -1188,10 +1190,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
               ({ key, title, label, onClick, Icon: Ico, disabled, active }) => {
                 const baseDisabled = !!disabled || isLoading;
                 // Keep Reset/New always available (except while generating)
-                const overlayBlock =
-                  key === "reset" || key === "new"
-                    ? false
-                    : isSolved || showSolvedOverlay;
+                const overlayBlock = key === "reset" || key === "new" ? false : (isSolved || showSolvedOverlay);
                 const isDisabled = baseDisabled || overlayBlock;
                 return (
                   <button
@@ -1226,10 +1225,9 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                         "rgba(59,130,246,0.95)";
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color =
-                        active
-                          ? "rgba(59,130,246,0.95)"
-                          : "rgba(255,255,255,0.85)";
+                      (e.currentTarget as HTMLButtonElement).style.color = active
+                        ? "rgba(59,130,246,0.95)"
+                        : "rgba(255,255,255,0.85)";
                     }}
                   >
                     <div
@@ -1305,15 +1303,10 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                       transform: "translateY(-1px)",
                     }
                   : null),
-                ...(showSolvedOverlay
-                  ? { opacity: 0.5, cursor: "not-allowed" }
-                  : null),
+                ...(showSolvedOverlay ? { opacity: 0.5, cursor: "not-allowed" } : null),
               }}
               onClick={() =>
-                !isLoading &&
-                !showSolvedOverlay &&
-                selected &&
-                setCell(selected.r, selected.c, n)
+                !isLoading && !showSolvedOverlay && selected && setCell(selected.r, selected.c, n)
               }
               disabled={isLoading || showSolvedOverlay}
               onMouseEnter={() => {
