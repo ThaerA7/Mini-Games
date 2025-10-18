@@ -73,7 +73,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
     const { puzzle } = generateSudoku(diff as GenDifficulty, {
       ensureDifficulty: true,
-      maxAttempts: 50,
+      maxAttempts: 80,
     });
     setBase(puzzle);
     const solved = solveOne(puzzle);
@@ -420,7 +420,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
       parseDifficulty(difficulty) as GenDifficulty,
       {
         ensureDifficulty: true,
-        maxAttempts: 50,
+        maxAttempts: 80,
       }
     );
     setBase(puzzle);

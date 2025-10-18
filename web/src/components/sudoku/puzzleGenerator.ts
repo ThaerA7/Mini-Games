@@ -35,7 +35,7 @@ const CLUE_RANGES_9: Record<Exclude<Difficulty, "16x16">, [number, number]> = {
 };
 
 // Target clue range for 16x16 (single difficulty in this app). 256 cells total.
-const CLUE_RANGE_16: [number, number] = [160, 200];
+const CLUE_RANGE_16: [number, number] = [115, 155];
 
 // Logic-coverage targets: how much of the puzzle should be solvable
 // using singles & hidden singles for each 9x9 difficulty.
@@ -48,7 +48,7 @@ const COVERAGE_GOAL_9: Record<Exclude<Difficulty, "16x16">, number> = {
 };
 
 // For 16x16 we simply aim for a decent chunk solvable by logic.
-const COVERAGE_GOAL_16 = 0.5;
+const COVERAGE_GOAL_16 = 0.35;
 
 // ------------------------------------
 // Public API
@@ -78,8 +78,10 @@ export function generateSudoku(
   const box = BOX_BY_SIZE[size];
   const symmetry = opts.symmetry ?? "central";
   const ensureDifficulty = opts.ensureDifficulty ?? true;
-  const maxAttempts = Math.max(1, opts.maxAttempts ?? 25);
-
+const maxAttempts = Math.max(
+  1,
+  opts.maxAttempts ?? (size === 16 ? 60 : 25)
+);
   const coverageGoal =
     size === 16
       ? COVERAGE_GOAL_16
