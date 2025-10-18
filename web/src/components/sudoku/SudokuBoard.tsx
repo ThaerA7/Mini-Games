@@ -100,7 +100,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   // controls auto-candidate visibility (Fast Pencil)
   const [showCandidates, setShowCandidates] = React.useState(false);
 
-  // NEW: Hard Mode — disables highlights, fast pencil, and wrong indications
+  // Hard Mode — disables highlights, fast pencil, and wrong indications
   const [hardMode, setHardMode] = React.useState(false);
 
   // history for undo
@@ -161,6 +161,20 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     }
     return count;
   }, [grid, givens, base]);
+
+  // Per-digit counts of user-entered numbers (for keypad badges)
+  const perDigitCounts = React.useMemo(() => {
+    const sizeLocal = base?.length ?? derivedSize;
+    const counts = Array.from({ length: sizeLocal + 1 }, () => 0);
+    if (!grid.length) return counts;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid.length; c++) {
+        const v = grid[r][c];
+        if (v > 0 && !givens[r][c]) counts[v] += 1;
+      }
+    }
+    return counts;
+  }, [grid, givens, base, derivedSize]);
 
   // solution-aware "wrong" detection (disabled in Hard Mode)
   const cellState = React.useMemo<CellState[][]>(() => {
@@ -266,7 +280,9 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   };
 
   const containerSize = "min(92vw, 700px)";
-  
+  // TOTAL layout width = board (containerSize) + gap (16px) + tools (74px)
+  const layoutWidth = `calc(${containerSize} + 16px + 74px)`;
+
   const borderColor = "rgba(255,255,255,0.25)";
   const thin = "1px";
   const thick = "2px";
@@ -316,30 +332,6 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     setHintMsg(m);
     window.setTimeout(() => setHintMsg(null), 1400);
   };
-  {
-    hintMsg && (
-      <div
-        role="status"
-        aria-live="polite"
-        style={{
-          position: "fixed",
-          left: "50%",
-          bottom: 24,
-          transform: "translateX(-50%)",
-          padding: "8px 12px",
-          borderRadius: 10,
-          background: "rgba(2,6,23,0.9)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          color: "rgba(255,255,255,0.95)",
-          fontWeight: 600,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-          pointerEvents: "none",
-        }}
-      >
-        {hintMsg}
-      </div>
-    );
-  }
 
   // ---------- Hints ----------
   const applyHint = () => {
@@ -584,14 +576,16 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   // ——— RENDER ———
   if (isLoading || !base) {
     return (
-      <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ display: "grid", gap: 16, width: layoutWidth, margin: "0 auto" }}>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `${containerSize} 74px`, // RIGHT COLUMN BACK TO 74px
+            gridTemplateColumns: `${containerSize} 74px`,
             gap: 16,
             alignItems: "start",
             justifyContent: "center",
+            margin: "0 auto",
+            width: layoutWidth,
           }}
         >
           {/* LEFT: header + board */}
@@ -665,14 +659,16 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   }
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
+    <div style={{ display: "grid", gap: 16, width: layoutWidth, margin: "0 auto" }}>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: `${containerSize} 74px`, // RIGHT COLUMN BACK TO 74px
+          gridTemplateColumns: `${containerSize} 74px`,
           gap: 16,
           alignItems: "start",
           justifyContent: "center",
+          margin: "0 auto",
+          width: layoutWidth,
         }}
       >
         {/* LEFT: header + board */}
@@ -737,7 +733,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
               background: "#0f172a",
               borderRadius: 12,
               border: `1px solid ${borderColor}`,
-              boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.45)", // ✅ fixed closing quote
               overflow: "hidden",
               userSelect: "none",
             }}
@@ -785,8 +781,9 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                     style={{
                       display: "grid",
                       placeItems: "center",
+                      // Bigger board numbers
                       fontSize:
-                        size === 16 ? "clamp(12px, 2.4vw, 20px)" : "clamp(18px, 3.2vw, 28px)",
+                        size === 16 ? "clamp(13px, 2.7vw, 22px)" : "clamp(20px, 3.6vw, 30px)",
                       fontWeight: given ? 700 : 600,
                       color: numberColor,
                       background: bg,
@@ -904,7 +901,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
         </div>
       </div>
 
-      {/* Mobile keypad — BIGGER buttons; width equals board */}
+      {/* Mobile keypad — bigger numbers and per-digit entered counts; width equals board */}
       <div
         style={{
           display: "flex",
@@ -912,49 +909,98 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           justifyContent: "center",
           flexWrap: "wrap",
           width: containerSize,   // exactly the board width
-          margin: "0 auto",
+          margin: "0 auto",       // ensures equal left/right outer spacing
         }}
       >
-        {Array.from({ length: size }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            style={{
-              padding: "14px 0",   // bigger
-              width: 56,           // bigger
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "white",
-              fontSize: 20,        // bigger font
-              cursor: "pointer",
-              transition: "transform 120ms ease, box-shadow 120ms ease",
-              ...(highlightDigit === n && !hardMode
-                ? {
-                    boxShadow: "0 0 0 2px rgba(59,130,246,0.9), 0 6px 24px rgba(59,130,246,0.35)",
-                    transform: "translateY(-1px)",
-                  }
-                : null),
-            }}
-            onClick={() => !isLoading && selected && setCell(selected.r, selected.c, n)}
-            disabled={isLoading}
-            onMouseEnter={() => {
-              if (!hardMode) setHighlightDigit(n);
-            }}
-            onMouseLeave={() => {
-              if (!hardMode) setHighlightDigit(0);
-            }}
-            onFocus={() => {
-              if (!hardMode) setHighlightDigit(n);
-            }}
-            onBlur={() => {
-              if (!hardMode) setHighlightDigit(0);
-            }}
-            aria-pressed={!hardMode && highlightDigit === n}
-          >
-            {symbolFor(n)}
-          </button>
-        ))}
+        {Array.from({ length: size }, (_, i) => i + 1).map((n) => {
+          const entered = perDigitCounts[n] ?? 0;
+          const isActive = !hardMode && highlightDigit === n;
+          return (
+            <button
+              key={n}
+              style={{
+                padding: "12px 0 8px",
+                width: 58,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "white",
+                cursor: "pointer",
+                transition: "transform 120ms ease, box-shadow 120ms ease",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                lineHeight: 1.05,
+                ...(isActive
+                  ? {
+                      boxShadow:
+                        "0 0 0 2px rgba(59,130,246,0.9), 0 6px 24px rgba(59,130,246,0.35)",
+                      transform: "translateY(-1px)",
+                    }
+                  : null),
+              }}
+              onClick={() => !isLoading && selected && setCell(selected.r, selected.c, n)}
+              disabled={isLoading}
+              onMouseEnter={() => {
+                if (!hardMode) setHighlightDigit(n);
+              }}
+              onMouseLeave={() => {
+                if (!hardMode) setHighlightDigit(0);
+              }}
+              onFocus={() => {
+                if (!hardMode) setHighlightDigit(n);
+              }}
+              onBlur={() => {
+                if (!hardMode) setHighlightDigit(0);
+              }}
+              aria-pressed={isActive}
+              aria-label={`Digit ${symbolFor(n)}. Entered ${entered}`}
+              title={`Entered: ${entered}`}
+            >
+              {/* Bigger number */}
+              <span style={{ fontSize: 26, fontWeight: 800 }}>{symbolFor(n)}</span>
+              {/* Count under the number */}
+              <span
+                style={{
+                  marginTop: 4,
+                  fontSize: 11,
+                  opacity: 0.9,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 8,
+                  padding: "2px 6px",
+                }}
+              >
+                {entered}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* Toast / hint message (fixed position) */}
+      {hintMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: 24,
+            transform: "translateX(-50%)",
+            padding: "8px 12px",
+            borderRadius: 10,
+            background: "rgba(2,6,23,0.9)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            color: "rgba(255,255,255,0.95)",
+            fontWeight: 600,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            pointerEvents: "none",
+          }}
+        >
+          {hintMsg}
+        </div>
+      )}
     </div>
   );
 }
