@@ -882,8 +882,8 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                     bg = "rgba(59,130,246,0.18)";
                   }
 
-                  const givenColor = "rgba(147, 197, 253, 0.95)"; // blue-300-ish
-                  const entryColor = "rgba(255,255,255,0.78)";
+                  const givenColor = "rgba(255,255,255,0.78)"; 
+                  const entryColor = "rgba(147, 197, 253, 0.95)";
                   const baseNumberColor = given ? givenColor : entryColor;
                   const numberColor = isActiveSameNumber
                     ? "rgba(255,255,255,0.98)"

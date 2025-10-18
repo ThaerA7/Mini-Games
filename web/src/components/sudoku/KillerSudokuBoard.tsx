@@ -1,4 +1,4 @@
-// src/components/killer/KillerSudokuBoard.tsx
+// src/components/KillerSudokuBoard.tsx
 import React from "react";
 import {
   generateKillerSudoku,
@@ -30,10 +30,20 @@ export default function KillerSudokuBoard() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [puzzle, setPuzzle] = React.useState<KillerPuzzle | null>(null);
 
+  // In KillerSudokuBoard.tsx
+
   const loadPuzzle = React.useCallback(async () => {
     setIsLoading(true);
     await nextFrame();
-    const p = generateKillerSudoku({ size: 9, minCage: 2, maxCage: 4 });
+    const p = generateKillerSudoku({
+      size: 9,
+      minCage: 2,
+      maxCage: 4,
+      difficulty: "hard", // <- nudge toward decently hard
+      baseNumbersCount: 33, // <- reveal a handful of base numbers
+      symmetricGivens: true, // <- nicer look
+      avoidEasyPairSums: true, // <- avoid trivial 2-cell sums where possible
+    });
     setPuzzle(p);
     setGrid(deepCopy(p.givens));
     setNotes(makeEmptyNotes(p.size));
@@ -123,39 +133,6 @@ export default function KillerSudokuBoard() {
     return m;
   }, [puzzle]);
 
-  // ---------- Killer conflict logic ----------
-  const hasConflict = (g: number[][], r: number, c: number, v: number) => {
-    if (v === 0) return false;
-    const N = g.length;
-    for (let j = 0; j < N; j++) if (j !== c && g[r][j] === v) return true; // row
-    for (let i = 0; i < N; i++) if (i !== r && g[i][c] === v) return true; // col
-
-    const id = cageIdByCell[r][c];
-    const cage = cagesById.get(id);
-    if (!cage) return false;
-
-    let sum = v;
-    const seen = new Set<number>([v]);
-    for (const cell of cage.cells) {
-      if (cell.r === r && cell.c === c) continue;
-      const val = g[cell.r][cell.c];
-      if (val !== 0) {
-        if (seen.has(val)) return true; // no repeats inside cage
-        seen.add(val);
-        sum += val;
-      }
-    }
-    if (sum > cage.sum) return true; // partial sums must not exceed target
-
-    // if all filled, must equal
-    const allFilled = cage.cells.every(({ r: rr, c: cc }) =>
-      rr === r && cc === c ? v !== 0 : g[rr][cc] !== 0
-    );
-    if (allFilled) return sum !== cage.sum;
-
-    return false;
-  };
-
   // Candidates for Killer (row/col, cage uniqueness + sum lower/upper bounds by loose math)
   const computeCandidatesKiller = React.useCallback(
     (g: number[][], r: number, c: number): number[] => {
@@ -220,59 +197,81 @@ export default function KillerSudokuBoard() {
   );
 
   // solution-aware cell state (disabled in Hard Mode)
-  const cellState: CellState[][] = React.useMemo(() => {
-    if (!puzzle) return [] as CellState[][];
-    if (hardMode) {
-      return grid.map((row, r) =>
-        row.map((v, c) => (v === 0 ? "empty" : givens[r][c] ? "given" : "ok"))
-      );
-    }
+const cellState: CellState[][] = React.useMemo(() => {
+  if (!puzzle) return [] as CellState[][];
+  if (hardMode) {
+    // Hide correctness in Hard Mode
     return grid.map((row, r) =>
-      row.map((v, c) => {
-        if (v === 0) return "empty";
-        if (givens[r][c]) return "given";
-        return hasConflict(grid, r, c, v) ? "wrong" : "ok";
-      })
+      row.map((v, c) => (v === 0 ? "empty" : givens[r][c] ? "given" : "ok"))
     );
-  }, [grid, givens, puzzle, hardMode]);
+  }
+  // Not hard mode: check directly against solution
+  return grid.map((row, r) =>
+    row.map((v, c) => {
+      if (v === 0) return "empty";
+      if (givens[r][c]) return "given";
+      return v === puzzle.solution[r][c] ? "ok" : "wrong";
+    })
+  );
+}, [grid, givens, puzzle, hardMode]);
+
 
   // Detect solved & overlay
-  React.useEffect(() => {
-    if (!puzzle) return;
-    for (let r = 0; r < size; r++)
-      for (let c = 0; c < size; c++) if (grid[r][c] === 0) return;
-    // all filled; verify no conflicts
-    for (let r = 0; r < size; r++)
-      for (let c = 0; c < size; c++)
-        if (hasConflict(grid, r, c, grid[r][c])) return;
-    if (!isSolved) {
-      setIsSolved(true);
-      setShowSolvedOverlay(true);
+React.useEffect(() => {
+  if (!puzzle) return;
+
+  // Must be fully filled
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (grid[r][c] === 0) return;
     }
-  }, [grid, puzzle, size, isSolved]);
+  }
+
+  // Must match the solution exactly
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (grid[r][c] !== puzzle.solution[r][c]) return;
+    }
+  }
+
+  if (!isSolved) {
+    setIsSolved(true);
+    setShowSolvedOverlay(true);
+  }
+}, [grid, puzzle, size, isSolved]);
+
 
   // ---------- Placement & notes ----------
   const placeValue = (r: number, c: number, v: number) => {
-    if (!puzzle || isSolved) return;
-    if (givens[r][c]) return;
-    setGrid((g) => {
-      const copy = deepCopy(g);
-      const N = copy.length;
-      if (v < 0 || v > N) return copy;
-      if (copy[r][c] === v) return copy;
-      pushHistory();
-      const conflict = hasConflict(copy, r, c, v);
-      copy[r][c] = v;
-      // clear notes in that cell
-      setNotes((n) => {
-        const nn = copyNotes(n);
-        nn[r][c].clear();
-        return nn;
-      });
-      if (!hardMode && v !== 0 && conflict) setMistakes((m) => m + 1);
-      return copy;
+  if (!puzzle || isSolved) return;
+  if (givens[r][c]) return;
+  setGrid((g) => {
+    const copy = deepCopy(g);
+    const N = copy.length;
+    if (v < 0 || v > N) return copy;
+    if (copy[r][c] === v) return copy;
+
+    pushHistory();
+
+    // Apply the change
+    copy[r][c] = v;
+
+    // clear notes in that cell
+    setNotes((n) => {
+      const nn = copyNotes(n);
+      nn[r][c].clear();
+      return nn;
     });
-  };
+
+    // Solution-aware mistake counting (only in non-hard mode)
+    if (!hardMode && v !== 0 && v !== puzzle.solution[r][c]) {
+      setMistakes((m) => m + 1);
+    }
+
+    return copy;
+  });
+};
+
 
   const toggleNote = (r: number, c: number, v: number) => {
     if (!puzzle || isSolved) return;
@@ -853,8 +852,8 @@ export default function KillerSudokuBoard() {
                     bg = "rgba(59,130,246,0.18)";
                   }
 
-                  const givenColor = "rgba(147, 197, 253, 0.95)"; // blue-300-ish
-                  const entryColor = "rgba(255,255,255,0.78)";
+                  const givenColor = "rgba(255,255,255,0.78)";
+                  const entryColor = "rgba(147, 197, 253, 0.95)";
                   const baseNumberColor = given ? givenColor : entryColor;
                   const numberColor = isActiveSameNumber
                     ? "rgba(255,255,255,0.98)"

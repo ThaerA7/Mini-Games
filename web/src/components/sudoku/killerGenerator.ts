@@ -1,5 +1,4 @@
-// src/components/killer/killerGenerator2.ts
-
+// src/components/killer/killerGenerator.ts
 import { generateSudoku } from "../sudoku/puzzleGenerator.ts";
 
 export type Cell = { r: number; c: number };
@@ -12,27 +11,36 @@ export type KillerPuzzle = {
   size: 9 | 16;
   cages: KillerCage[];
   solution: number[][];
-  // givens are typically empty in killer; keep here for flexibility
   givens: number[][];
 };
 
 export type KillerOptions = {
-  size?: 9 | 16;        // default 9
-  minCage?: number;     // default 2
-  maxCage?: number;     // default 4
-  seedAttempts?: number;// how many times we try to grow a cage from a random seed (default 2)
+  size?: 9 | 16;             // default 9
+  minCage?: number;          // default 2
+  maxCage?: number;          // default 4
+  seedAttempts?: number;     // default depends on difficulty
+  difficulty?: "easy" | "medium" | "hard";
+  baseNumbersCount?: number; // how many givens to reveal (0 = classic killer)
+  symmetricGivens?: boolean; // place givens with 180° rotational symmetry
+  avoidEasyPairSums?: boolean; // avoid pair sums {3,4,16,17} (9x9) where possible
 };
+
+const randPick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
 export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
   const size: 9 | 16 = (opts.size ?? 9) as 9 | 16;
-  const minCage = Math.max(1, opts.minCage ?? 2);
+  const difficulty = opts.difficulty ?? "hard";
+  const minCage = Math.max(2, opts.minCage ?? 2);
   const maxCage = Math.max(minCage, opts.maxCage ?? 4);
-  const seedAttempts = Math.max(1, opts.seedAttempts ?? 2);
+  const seedAttempts =
+    opts.seedAttempts ??
+    (difficulty === "hard" ? 4 : difficulty === "medium" ? 3 : 2);
 
-  // Reuse your solved grid from the normal generator
-  const solved = generateSudoku(size === 16 ? "16x16" : "easy", {
-    ensureDifficulty: false,
-  }).solution;
+  const avoidEasyPairSums = opts.avoidEasyPairSums ?? (difficulty !== "easy");
+
+  // Use your solved classic grid
+  const preset = size === 16 ? "16x16" : difficulty === "easy" ? "easy" : "hard";
+  const solved = generateSudoku(preset as any, { ensureDifficulty: false }).solution;
 
   const used: boolean[][] = Array.from({ length: size }, () =>
     Array(size).fill(false)
@@ -43,7 +51,6 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
 
   const inBounds = (r: number, c: number) => r >= 0 && c >= 0 && r < size && c < size;
 
-  // 4-neighborhood
   const neigh = [
     [1, 0],
     [-1, 0],
@@ -51,30 +58,83 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
     [0, -1],
   ] as const;
 
-  // choose an unassigned cell
+  // Bias target cage sizes by difficulty
+  // (Still randomized, just nudged toward 3–4 for "hard")
+  const sizeWeights =
+    difficulty === "hard"
+      ? new Map<number, number>([
+          [2, 0.30],
+          [3, 0.40],
+          [4, 0.30],
+        ])
+      : difficulty === "medium"
+      ? new Map<number, number>([
+          [2, 0.45],
+          [3, 0.35],
+          [4, 0.20],
+        ])
+      : new Map<number, number>([
+          [2, 0.55],
+          [3, 0.30],
+          [4, 0.15],
+        ]);
+
+  const sampleTargetSize = () => {
+    const candidates = [];
+    for (let k = minCage; k <= maxCage; k++) {
+      const w = sizeWeights.get(k) ?? 1;
+      for (let i = 0; i < Math.round(w * 100); i++) candidates.push(k);
+    }
+    return randPick(candidates);
+  };
+
   const pickSeed = (): Cell | null => {
     for (let tries = 0; tries < seedAttempts * size * size; tries++) {
       const r = Math.floor(Math.random() * size);
       const c = Math.floor(Math.random() * size);
       if (!used[r][c]) return { r, c };
     }
-    // fallback linear scan
-    for (let r = 0; r < size; r++)
-      for (let c = 0; c < size; c++)
-        if (!used[r][c]) return { r, c };
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!used[r][c]) return { r, c };
     return null;
   };
 
+  // try to extend a cage by one extra valid neighbor (unique digit within the cage)
+  const tryExtendCageOnce = (cage: KillerCage, taken: Set<number>): boolean => {
+    const border: Cell[] = [];
+    for (const cur of cage.cells) {
+      for (const [dr, dc] of neigh) {
+        const nr = cur.r + dr, nc = cur.c + dc;
+        if (!inBounds(nr, nc) || used[nr][nc]) continue;
+        border.push({ r: nr, c: nc });
+      }
+    }
+    // randomize
+    for (let i = border.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [border[i], border[j]] = [border[j], border[i]];
+    }
+    for (const cand of border) {
+      const d = solved[cand.r][cand.c];
+      if (!taken.has(d)) {
+        used[cand.r][cand.c] = true;
+        cage.cells.push(cand);
+        taken.add(d);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Build cages
   while (true) {
     const seed = pickSeed();
-    if (!seed) break; // done (all assigned)
+    if (!seed) break;
 
     const cage: KillerCage = { id: nextId++, sum: 0, cells: [] };
-    const target = Math.floor(Math.random() * (maxCage - minCage + 1)) + minCage;
+    const target = sampleTargetSize();
 
-    // grow the cage with unique digits (killer rule) + connectivity
     const frontier: Cell[] = [seed];
-    const taken = new Set<number>(); // digits already inside this cage
+    const taken = new Set<number>();
 
     while (frontier.length && cage.cells.length < target) {
       const idx = Math.floor(Math.random() * frontier.length);
@@ -82,46 +142,108 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
       if (used[cur.r][cur.c]) continue;
 
       const d = solved[cur.r][cur.c];
-      if (taken.has(d)) continue; // no repeats inside cage
+      if (taken.has(d)) continue;
 
-      // accept this cell
       used[cur.r][cur.c] = true;
       cage.cells.push(cur);
       taken.add(d);
 
-      // push neighbors to frontier
       for (const [dr, dc] of neigh) {
-        const nr = cur.r + dr,
-          nc = cur.c + dc;
+        const nr = cur.r + dr, nc = cur.c + dc;
         if (!inBounds(nr, nc) || used[nr][nc]) continue;
         frontier.push({ r: nr, c: nc });
       }
     }
 
-    // if we only got 1 cell and minCage > 1, try to force one neighbor
+    // If only got a singleton (shouldn't happen with minCage=2), force-grow once
     if (cage.cells.length === 1 && minCage > 1) {
-      const only = cage.cells[0];
-      const shuffled = [...neigh].sort(() => Math.random() - 0.5);
-      for (const [dr, dc] of shuffled) {
-        const nr = only.r + dr,
-          nc = only.c + dc;
-        if (!inBounds(nr, nc) || used[nr][nc]) continue;
-        const d = solved[nr][nc];
-        if (!taken.has(d)) {
-          used[nr][nc] = true;
-          cage.cells.push({ r: nr, c: nc });
-          taken.add(d);
-          break;
-        }
+      tryExtendCageOnce(cage, taken);
+    }
+
+    // Optional: avoid "easy" pair sums by growing 2->3 if possible
+    if (avoidEasyPairSums && cage.cells.length === 2 && size === 9) {
+      const sum2 =
+        solved[cage.cells[0].r][cage.cells[0].c] +
+        solved[cage.cells[1].r][cage.cells[1].c];
+      const bad = new Set([3, 4, 16, 17]);
+      if (bad.has(sum2)) {
+        // try to add a third cell
+        tryExtendCageOnce(cage, taken);
       }
     }
 
-    // compute sum from solution
     cage.sum = cage.cells.reduce((acc, { r, c }) => acc + solved[r][c], 0);
     cages.push(cage);
   }
 
-  // empty givens (classic killer)
+  // ---- Givens (base numbers) ----
   const givens = Array.from({ length: size }, () => Array(size).fill(0));
+  const wanted = Math.max(0, opts.baseNumbersCount ?? (difficulty === "hard" ? 10 : difficulty === "medium" ? 14 : 18));
+  if (wanted > 0) {
+    // helper: cage lookup to avoid fully revealing a 2-cell cage
+    const cageIdGrid = Array.from({ length: size }, () => Array<number>(size).fill(0));
+    for (const c of cages) for (const cell of c.cells) cageIdGrid[cell.r][cell.c] = c.id;
+    const cageById = new Map<number, KillerCage>(cages.map(c => [c.id, c]));
+
+    const selected = new Set<string>();
+    const pushCell = (r: number, c: number) => selected.add(`${r},${c}`);
+    const hasCell = (r: number, c: number) => selected.has(`${r},${c}`);
+
+    // Candidate order: prefer cells in 3–4 cages (slightly more interesting)
+    const allCells: Cell[] = [];
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) allCells.push({ r, c });
+    allCells.sort((a, b) => {
+      const ca = cageById.get(cageIdGrid[a.r][a.c])!;
+      const cb = cageById.get(cageIdGrid[b.r][b.c])!;
+      // prefer larger cages first
+      return cb.cells.length - ca.cells.length;
+    });
+
+    const symmetric = opts.symmetricGivens ?? true;
+
+    const tryAddPair = (r: number, c: number) => {
+      const mirrorR = size - 1 - r;
+      const mirrorC = size - 1 - c;
+
+      // do not fully reveal a 2-cell cage
+      const thisId = cageIdGrid[r][c];
+      const thatId = cageIdGrid[mirrorR][mirrorC];
+      const thisCage = cageById.get(thisId)!;
+      const thatCage = cageById.get(thatId)!;
+      if (thisCage.cells.length === 2) {
+        const other = thisCage.cells.find(x => !(x.r === r && x.c === c))!;
+        if (hasCell(other.r, other.c)) return false;
+      }
+      if (thatCage.cells.length === 2) {
+        const other = thatCage.cells.find(x => !(x.r === mirrorR && x.c === mirrorC))!;
+        if (hasCell(other.r, other.c)) return false;
+      }
+
+      pushCell(r, c);
+      if (!(mirrorR === r && mirrorC === c)) pushCell(mirrorR, mirrorC);
+      return true;
+    };
+
+    for (const cell of allCells) {
+      if (selected.size >= wanted) break;
+      if (hasCell(cell.r, cell.c)) continue;
+
+      if (symmetric) {
+        tryAddPair(cell.r, cell.c);
+      } else {
+        pushCell(cell.r, cell.c);
+      }
+    }
+
+    // Materialize givens
+    let placed = 0;
+    for (const key of selected) {
+      if (placed >= wanted) break;
+      const [r, c] = key.split(",").map(Number);
+      givens[r][c] = solved[r][c];
+      placed++;
+    }
+  }
+
   return { size, cages, solution: solved, givens };
 }
