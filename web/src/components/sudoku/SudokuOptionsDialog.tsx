@@ -230,7 +230,15 @@ export default function SudokuOptionsDialog({
         >
           Continue
         </FloatingButton>
-
+<FloatingButton
+  bg="#9333ea" // purple
+  onClick={() => {
+    onOpenChange(false);
+    navigate("/killer");
+  }}
+>
+  Killer Sudoku
+</FloatingButton>
         <FloatingButton bg={closeColor} onClick={() => onOpenChange(false)}>
           Close
         </FloatingButton>
