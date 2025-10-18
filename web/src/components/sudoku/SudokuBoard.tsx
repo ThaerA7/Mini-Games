@@ -1,3 +1,4 @@
+// SudokuBoard.tsx
 import React from "react";
 import {
   generateSudoku,
@@ -341,6 +342,14 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   // ---------- Hints ----------
   const applyHint = () => {
     if (!base) return;
+
+    // NEW: block hints in Hard Mode
+    if (hardMode) {
+      // optional: quick toast so users know why it's disabled
+      showHintMsg("Hints are disabled in Hard Mode");
+      return;
+    }
+
     const g = grid;
 
     // 1) Naked single (prioritize selected, then global)
@@ -507,6 +516,17 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
         ? String(difficulty)
         : "Medium";
 
+  // --- Align toolbar with board (not header)
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const update = () =>
+      setHeaderHeight(headerRef.current?.getBoundingClientRect().height ?? 0);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   // ——— LOADING UI
   const LoadingBoard: React.FC<{ size: number; label: string }> = ({
     size,
@@ -595,11 +615,11 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   if (isLoading || !base) {
     return (
       <div style={{ display: "grid", gap: 16 }}>
-        {/* Loading layout: header sits above the board ONLY (left column), no icons */}
+        {/* Loading layout: header sits above the board ONLY (left column) */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `${containerSize} 64px`,
+            gridTemplateColumns: `${containerSize} 74px`,
             gap: 16,
             alignItems: "start",
             justifyContent: "center",
@@ -609,6 +629,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           <div style={{ display: "grid", gap: 16 }}>
             {/* Top info bar — text only */}
             <div
+              ref={headerRef}
               style={{
                 width: containerSize,
                 display: "grid",
@@ -634,34 +655,45 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
             <LoadingBoard size={derivedSize} label={label} />
           </div>
 
-          {/* RIGHT: toolbar skeleton */}
+          {/* RIGHT: toolbar skeleton — centered within board area only */}
           <div
             style={{
-              height: containerSize,
+              height: containerSize, // exactly the board’s height
               display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "space-evenly",
+              alignItems: "center", // vertical centering of the stack
+              justifyContent: "center", // horizontal centering in the 74px column
               padding: 0,
               userSelect: "none",
               overflow: "hidden",
+              marginTop: headerHeight + 16, // push down to board top (header + gap)
             }}
           >
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: 74,
-                  height: 74,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background:
-                    "linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.10), rgba(255,255,255,0.04))",
-                  backgroundSize: "200% 100%",
-                  animation: "sudokuShimmer 1.2s linear infinite",
-                }}
-              />
-            ))}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 16, // fixed spacing BETWEEN items
+                maxHeight: "100%", // never exceed board height
+                overflowY: "auto",
+              }}
+            >
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: 74,
+                    height: 74,
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background:
+                      "linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.10), rgba(255,255,255,0.04))",
+                    backgroundSize: "200% 100%",
+                    animation: "sudokuShimmer 1.2s linear infinite",
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -670,11 +702,11 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      {/* Main layout: header sits above the board ONLY (left column), no icons in header */}
+      {/* Main layout: header sits above the board ONLY (left column) */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: `${containerSize} 64px`,
+          gridTemplateColumns: `${containerSize} 74px`,
           gap: 16,
           alignItems: "start",
           justifyContent: "center",
@@ -684,6 +716,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
         <div style={{ display: "grid", gap: 16 }}>
           {/* Top info bar — text only */}
           <div
+            ref={headerRef}
             style={{
               width: containerSize,
               display: "grid",
@@ -813,153 +846,165 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           </div>
         </div>
 
-        {/* RIGHT: toolbar */}
+        {/* RIGHT: toolbar — centered within board area only */}
         <div
           style={{
-            height: containerSize,
+            height: containerSize, // exactly the board’s height
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "space-evenly",
+            alignItems: "center", // vertical centering of the whole stack
+            justifyContent: "center", // horizontal centering in the 74px column
             padding: 0,
             userSelect: "none",
             overflow: "hidden",
+            marginTop: headerHeight + 16, // push down to board top (header + gap)
           }}
         >
-          {[
-            {
-              key: "undo",
-              title: "Undo",
-              label: "Undo",
-              onClick: popHistory,
-              Icon: Icons.Undo,
-              disabled: history.length === 0,
-            },
-            {
-              key: "erase",
-              title: "Erase",
-              label: "Erase",
-              onClick: eraseSelected,
-              Icon: Icons.Eraser,
-              disabled:
-                !selected || (selected && givens[selected.r][selected.c]),
-            },
-            {
-              key: "pencil",
-              title: pencilMode ? "Exit Pencil" : "Pencil",
-              label: "Pencil",
-              onClick: () => setPencilMode((v) => !v),
-              Icon: Icons.Pencil,
-              active: pencilMode,
-            },
-            {
-              key: "fastp",
-              title: "Fast Pencil",
-              label: "Fast Pencil",
-              onClick: fastPencil,
-              Icon: Icons.Sparkles,
-              active: showCandidates,
-              disabled: hardMode, // disabled in hard mode
-            },
-            {
-              key: "hint",
-              title: "Hint",
-              label: "Hint",
-              onClick: applyHint,
-              Icon: Icons.Bulb,
-            },
-            {
-              key: "reset",
-              title: "Reset",
-              label: "Reset",
-              onClick: resetPuzzle,
-              Icon: Icons.Reset,
-            },
-            {
-              key: "new",
-              title:
-                initial && initial.length
-                  ? "New Game (disabled for initial puzzles)"
-                  : "New Game",
-              label: "New Game",
-              onClick: newPuzzle,
-              Icon: Icons.Dice,
-              disabled: !!(initial && initial.length),
-            },
-            {
-              key: "hard",
-              title: hardMode ? "Hard Mode: ON" : "Hard Mode: OFF",
-              label: "Hard Mode",
-              onClick: toggleHardMode,
-              Icon: Icons.Hard,
-              active: hardMode,
-            },
-          ].map(
-            ({ key, title, label, onClick, Icon: Ico, disabled, active }) => (
-              <button
-                key={key}
-                aria-label={title}
-                title={title}
-                onClick={onClick}
-                disabled={!!disabled || isLoading}
-                style={{
-                  width: 74,
-                  height: 92, // a bit taller to fit the caption
-                  border: "none",
-                  background: "transparent",
-                  color: "rgba(255, 255, 255, 0.85)",
-                  cursor: "pointer",
-                  borderRadius: 12,
-                  display: "grid",
-                  placeItems: "center",
-                  transition: "color 120ms ease, opacity 120ms ease",
-                  outline: "none",
-                  boxShadow: "none",
-                  WebkitTapHighlightColor: "transparent",
-                  appearance: "none",
-                  ...(active ? { color: "rgba(59,130,246,0.95)" } : null),
-                  ...(disabled || isLoading
-                    ? { opacity: 0.4, cursor: "not-allowed" }
-                    : null),
-                }}
-                onMouseEnter={(e) => {
-                  if (disabled || isLoading) return;
-                  (e.currentTarget as HTMLButtonElement).style.color =
-                    "rgba(59,130,246,0.95)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = active
-                    ? "rgba(59,130,246,0.95)"
-                    : "rgba(255,255,255,0.85)";
-                }}
-              >
-                <div
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16, // keep inter-button spacing exactly the same
+              maxHeight: "100%", // never exceed board height
+              overflowY: "auto", // only appears if it would overflow
+            }}
+          >
+            {[
+              {
+                key: "undo",
+                title: "Undo",
+                label: "Undo",
+                onClick: popHistory,
+                Icon: Icons.Undo,
+                disabled: history.length === 0,
+              },
+              {
+                key: "erase",
+                title: "Erase",
+                label: "Erase",
+                onClick: eraseSelected,
+                Icon: Icons.Eraser,
+                disabled:
+                  !selected || (selected && givens[selected.r][selected.c]),
+              },
+              {
+                key: "pencil",
+                title: pencilMode ? "Exit Pencil" : "Pencil",
+                label: "Pencil",
+                onClick: () => setPencilMode((v) => !v),
+                Icon: Icons.Pencil,
+                active: pencilMode,
+              },
+              {
+                key: "fastp",
+                title: "Fast Pencil",
+                label: "Fast Pencil",
+                onClick: fastPencil,
+                Icon: Icons.Sparkles,
+                active: showCandidates,
+                disabled: hardMode,
+              },
+              {
+                key: "hint",
+                title: hardMode ? "Hint (disabled in Hard Mode)" : "Hint", // NEW: clarify in tooltip
+                label: "Hint",
+                onClick: applyHint,
+                Icon: Icons.Bulb,
+                disabled: hardMode, // NEW: disable the button in Hard Mode
+              },
+              {
+                key: "reset",
+                title: "Reset",
+                label: "Reset",
+                onClick: resetPuzzle,
+                Icon: Icons.Reset,
+              },
+              {
+                key: "new",
+                title:
+                  initial && initial.length
+                    ? "New Game (disabled for initial puzzles)"
+                    : "New Game",
+                label: "New Game",
+                onClick: newPuzzle,
+                Icon: Icons.Dice,
+                disabled: !!(initial && initial.length),
+              },
+              {
+                key: "hard",
+                title: hardMode ? "Hard Mode: ON" : "Hard Mode: OFF",
+                label: "Hard Mode",
+                onClick: toggleHardMode,
+                Icon: Icons.Hard,
+                active: hardMode,
+              },
+            ].map(
+              ({ key, title, label, onClick, Icon: Ico, disabled, active }) => (
+                <button
+                  key={key}
+                  aria-label={title}
+                  title={title}
+                  onClick={onClick}
+                  disabled={!!disabled || isLoading}
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 6,
-                    lineHeight: 1.1,
+                    width: 74,
+                    height: 92, // keep your button size
+                    border: "none",
+                    background: "transparent",
+                    color: "rgba(255, 255, 255, 0.85)",
+                    cursor: "pointer",
+                    borderRadius: 12,
+                    display: "grid",
+                    placeItems: "center",
+                    transition: "color 120ms ease, opacity 120ms ease",
+                    outline: "none",
+                    boxShadow: "none",
+                    WebkitTapHighlightColor: "transparent",
+                    appearance: "none",
+                    ...(active ? { color: "rgba(59,130,246,0.95)" } : null),
+                    ...(disabled || isLoading
+                      ? { opacity: 0.4, cursor: "not-allowed" }
+                      : null),
+                  }}
+                  onMouseEnter={(e) => {
+                    if (disabled || isLoading) return;
+                    (e.currentTarget as HTMLButtonElement).style.color =
+                      "rgba(59,130,246,0.95)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = active
+                      ? "rgba(59,130,246,0.95)"
+                      : "rgba(255,255,255,0.85)";
                   }}
                 >
-                  <Ico />
-                  <span
+                  <div
                     style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      letterSpacing: 0.2,
-                      textAlign: "center",
-                      whiteSpace: "normal",
-                      color: "currentColor", // inherits icon color/hover/active
-                      opacity: disabled || isLoading ? 0.9 : 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 6,
+                      lineHeight: 1.1,
                     }}
                   >
-                    {label}
-                  </span>
-                </div>
-              </button>
-            )
-          )}
+                    <Ico />
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        letterSpacing: 0.2,
+                        textAlign: "center",
+                        whiteSpace: "normal",
+                        color: "currentColor",
+                        opacity: disabled || isLoading ? 0.9 : 1,
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                </button>
+              )
+            )}
+          </div>
         </div>
       </div>
 
@@ -1017,8 +1062,6 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           </button>
         ))}
       </div>
-
-      {/* Removed instructional paragraph as requested */}
     </div>
   );
 }
