@@ -1,16 +1,3 @@
-/**
- * Sudoku Generator & Solver (9x9 + 16x16)
- * --------------------------------------
- * - Generates a valid solved grid.
- * - Digs cells while preserving a **unique** solution.
- * - Tries to fit requested difficulty using simple logic rating (singles & hidden singles).
- *
- * Usage:
- *   import { generateSudoku } from "../lib/sudoku/generator";
- *   const { puzzle, solution, size } = generateSudoku("medium");
- *
- * Grid values: 0 = empty, other numbers are 1..size
- */
 
 export type Difficulty =
   | "easy"
@@ -76,6 +63,13 @@ type Options = {
   maxAttempts?: number;
 };
 
+export function isUniquelySolvable(puzzle: Grid): boolean {
+  const size = puzzle.length as Size;
+  const box = BOX_BY_SIZE[size];
+  if (!(size === 9 || size === 16)) return false;
+  return hasUniqueSolution(puzzle, size, box);
+}
+
 export function generateSudoku(
   difficulty: Difficulty,
   opts: Options = {}
@@ -114,6 +108,8 @@ export function generateSudoku(
       };
     }
   }
+
+  
 
   // Fallback (should be rare): return a unique puzzle even if it missed coverage goal
   const solution = makeRandomSolved(size, box);
