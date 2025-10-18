@@ -88,10 +88,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
   // Board state (depends on base)
   const [grid, setGrid] = React.useState<number[][]>([]);
-  const [selected, setSelected] = React.useState<{
-    r: number;
-    c: number;
-  } | null>(null);
+  const [selected, setSelected] = React.useState<{ r: number; c: number } | null>(null);
   const [mistakes, setMistakes] = React.useState(0);
   const [seconds, setSeconds] = React.useState(0);
   const [notes, setNotes] = React.useState<Notes>([]);
@@ -110,10 +107,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   type Snapshot = { grid: number[][]; notes: Notes; mistakes: number };
   const [history, setHistory] = React.useState<Snapshot[]>([]);
   const pushHistory = React.useCallback(() => {
-    setHistory((h) => [
-      ...h,
-      { grid: deepCopy(grid), notes: copyNotes(notes), mistakes },
-    ]);
+    setHistory((h) => [...h, { grid: deepCopy(grid), notes: copyNotes(notes), mistakes }]);
   }, [grid, notes, mistakes]);
 
   const popHistory = React.useCallback(() => {
@@ -156,11 +150,22 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     return base.map((row) => row.map((v) => v !== 0));
   }, [base]);
 
+  // Count of user-entered cells (non-givens that are non-zero)
+  const entriesCount = React.useMemo(() => {
+    if (!base || !grid.length) return 0;
+    let count = 0;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid.length; c++) {
+        if (!givens[r][c] && grid[r][c] !== 0) count++;
+      }
+    }
+    return count;
+  }, [grid, givens, base]);
+
   // solution-aware "wrong" detection (disabled in Hard Mode)
   const cellState = React.useMemo<CellState[][]>(() => {
     if (!base) return [] as CellState[][];
     if (hardMode) {
-      // In hard mode, never mark as wrong
       return grid.map((row, r) =>
         row.map((v, c) => {
           if (v === 0) return "empty";
@@ -199,11 +204,8 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
         return nn;
       });
 
-      // In hard mode, do NOT count/display mistakes
       if (!hardMode) {
         if (v !== 0 && conflict) setMistakes((m) => m + 1);
-        // OPTIONAL: also count non-solution values as mistakes (uncomment to enable)
-        // if (v !== 0 && solution && solution[r][c] !== v) setMistakes((m) => m + 1);
       }
 
       return copy;
@@ -264,6 +266,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   };
 
   const containerSize = "min(92vw, 700px)";
+  
   const borderColor = "rgba(255,255,255,0.25)";
   const thin = "1px";
   const thick = "2px";
@@ -292,7 +295,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
   // Toggle auto-candidates overlay (does not flip pencilMode)
   const fastPencil = () => {
-    if (hardMode) return; // disabled in hard mode
+    if (hardMode) return;
     setShowCandidates((v) => !v);
   };
 
@@ -301,7 +304,6 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     setHardMode((on) => {
       const next = !on;
       if (next) {
-        // turning ON: disable highlights and fast pencil
         setHighlightDigit(0);
         setShowCandidates(false);
       }
@@ -342,17 +344,13 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   // ---------- Hints ----------
   const applyHint = () => {
     if (!base) return;
-
-    // NEW: block hints in Hard Mode
     if (hardMode) {
-      // optional: quick toast so users know why it's disabled
       showHintMsg("Hints are disabled in Hard Mode");
       return;
     }
 
     const g = grid;
 
-    // 1) Naked single (prioritize selected, then global)
     if (selected) {
       const nsSel = findNakedSingle(g, selected);
       if (nsSel) {
@@ -368,7 +366,6 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
       return;
     }
 
-    // 2) Hidden single (row / column / box)
     const hs = findHiddenSingle(g);
     if (hs) {
       placeValue(hs.r, hs.c, hs.v);
@@ -376,25 +373,18 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
       return;
     }
 
-    // 3) Solver fallback — fill a logically safe cell using the solved board
-    const solved = solution ?? solveOne(g); // prefer precomputed solution
+    const solved = solution ?? solveOne(g);
     if (!solved) {
       showHintMsg("No hint: current board has a contradiction");
       return;
     }
 
-    // prefer selected cell if it's empty and not a given
-    if (
-      selected &&
-      g[selected.r][selected.c] === 0 &&
-      !givens[selected.r][selected.c]
-    ) {
+    if (selected && g[selected.r][selected.c] === 0 && !givens[selected.r][selected.c]) {
       placeValue(selected.r, selected.c, solved[selected.r][selected.c]);
       showHintMsg("Hint: Solved cell");
       return;
     }
 
-    // otherwise pick an MRV cell to fill from the solution
     const cell = findBestEmptyCell(g);
     if (cell) {
       placeValue(cell.r, cell.c, solved[cell.r][cell.c]);
@@ -416,20 +406,16 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     setHighlightDigit(0);
     setShowCandidates(false);
     setPencilMode(false);
-    // keep `solution` and `hardMode` as-is
   };
 
   const newPuzzle = async () => {
-    if (initial && initial.length) return; // disabled when initial grid is supplied
+    if (initial && initial.length) return;
     setIsLoading(true);
     await nextFrame();
-    const { puzzle } = generateSudoku(
-      parseDifficulty(difficulty) as GenDifficulty,
-      {
-        ensureDifficulty: true,
-        maxAttempts: 50,
-      }
-    );
+    const { puzzle } = generateSudoku(parseDifficulty(difficulty) as GenDifficulty, {
+      ensureDifficulty: true,
+      maxAttempts: 50,
+    });
     setBase(puzzle);
     const solved = solveOne(puzzle);
     setSolution(solved);
@@ -437,10 +423,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   };
 
   // ——— Render small digits inside a cell (either user notes OR auto-candidates)
-  const MarksGrid: React.FC<{ marks: number[]; activeDigit: number }> = ({
-    marks,
-    activeDigit,
-  }) => {
+  const MarksGrid: React.FC<{ marks: number[]; activeDigit: number }> = ({ marks, activeDigit }) => {
     const N = size === 16 ? 16 : 9;
     const sub = size === 16 ? 4 : 3;
 
@@ -494,44 +477,31 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
     return v > 0 ? v : 0;
   }, [selected, grid]);
 
-  // Prefer explicit highlight (from keypad hover) over selected cell — disabled in Hard Mode
   const activeDigit = hardMode ? 0 : highlightDigit || selectedDigit;
 
-  // marks to show in an EMPTY cell:
-  //  - if pencilMode => user's notes
-  //  - else if showCandidates => auto-computed candidates
-  //  - else => none
   const getMarks = (r: number, c: number): number[] => {
     if (grid[r][c] !== 0) return [];
-    if (hardMode) return []; // no auto-candidates in hard mode
+    if (hardMode) return [];
     if (pencilMode) return Array.from(notes[r][c]).sort((a, b) => a - b);
     if (showCandidates) return computeCandidates(grid, r, c);
     return [];
   };
 
   const label =
-    diff === "16x16"
-      ? "16×16"
-      : String(difficulty).trim().length
-        ? String(difficulty)
-        : "Medium";
+    diff === "16x16" ? "16×16" : String(difficulty).trim().length ? String(difficulty) : "Medium";
 
   // --- Align toolbar with board (not header)
   const headerRef = React.useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = React.useState(0);
   React.useLayoutEffect(() => {
-    const update = () =>
-      setHeaderHeight(headerRef.current?.getBoundingClientRect().height ?? 0);
+    const update = () => setHeaderHeight(headerRef.current?.getBoundingClientRect().height ?? 0);
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
 
   // ——— LOADING UI
-  const LoadingBoard: React.FC<{ size: number; label: string }> = ({
-    size,
-    label,
-  }) => {
+  const LoadingBoard: React.FC<{ size: number; label: string }> = ({ size, label }) => {
     const b = size === 16 ? 4 : 3;
     return (
       <div
@@ -615,11 +585,10 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   if (isLoading || !base) {
     return (
       <div style={{ display: "grid", gap: 16 }}>
-        {/* Loading layout: header sits above the board ONLY (left column) */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `${containerSize} 74px`,
+            gridTemplateColumns: `${containerSize} 74px`, // RIGHT COLUMN BACK TO 74px
             gap: 16,
             alignItems: "start",
             justifyContent: "center",
@@ -627,7 +596,6 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
         >
           {/* LEFT: header + board */}
           <div style={{ display: "grid", gap: 16 }}>
-            {/* Top info bar — text only */}
             <div
               ref={headerRef}
               style={{
@@ -641,31 +609,27 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                 userSelect: "none",
               }}
             >
-              <div style={{ justifySelf: "start", opacity: 0.6 }}>
-                Mistakes: —
-              </div>
+              <div style={{ justifySelf: "start", opacity: 0.6 }}>Mistakes: —</div>
               <div style={{ justifySelf: "center", opacity: 0.95 }}>
                 {String(difficulty).toUpperCase()} • generating…
               </div>
-              <div style={{ justifySelf: "end", opacity: 0.6 }}>
-                Time: --:--
-              </div>
+              <div style={{ justifySelf: "end", opacity: 0.6 }}>Time: --:--</div>
             </div>
 
             <LoadingBoard size={derivedSize} label={label} />
           </div>
 
-          {/* RIGHT: toolbar skeleton — centered within board area only */}
+          {/* RIGHT: toolbar skeleton */}
           <div
             style={{
-              height: containerSize, // exactly the board’s height
+              height: containerSize,
               display: "flex",
-              alignItems: "center", // vertical centering of the stack
-              justifyContent: "center", // horizontal centering in the 74px column
+              alignItems: "center",
+              justifyContent: "center",
               padding: 0,
               userSelect: "none",
               overflow: "hidden",
-              marginTop: headerHeight + 16, // push down to board top (header + gap)
+              marginTop: headerHeight + 16,
             }}
           >
             <div
@@ -673,8 +637,8 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 16, // fixed spacing BETWEEN items
-                maxHeight: "100%", // never exceed board height
+                gap: 16,
+                maxHeight: "100%",
                 overflowY: "auto",
               }}
             >
@@ -702,11 +666,10 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      {/* Main layout: header sits above the board ONLY (left column) */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: `${containerSize} 74px`,
+          gridTemplateColumns: `${containerSize} 74px`, // RIGHT COLUMN BACK TO 74px
           gap: 16,
           alignItems: "start",
           justifyContent: "center",
@@ -714,7 +677,6 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
       >
         {/* LEFT: header + board */}
         <div style={{ display: "grid", gap: 16 }}>
-          {/* Top info bar — text only */}
           <div
             ref={headerRef}
             style={{
@@ -730,6 +692,24 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           >
             <div style={{ justifySelf: "start", opacity: 0.9 }}>
               Mistakes: {hardMode ? "—" : mistakes}
+              {!hardMode && (
+                <span
+                  style={{
+                    marginLeft: 10,
+                    padding: "2px 6px",
+                    fontSize: 11,
+                    lineHeight: 1.2,
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    color: "rgba(255,255,255,0.9)",
+                    verticalAlign: "middle",
+                  }}
+                  title="Numbers you have entered on the board"
+                >
+                  Entered: {entriesCount}
+                </span>
+              )}
             </div>
             <div style={{ justifySelf: "center", opacity: 0.95 }}>
               {String(difficulty).toUpperCase()}
@@ -771,24 +751,18 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                 const state = cellState[r][c];
                 const selectedCell = selected?.r === r && selected?.c === c;
 
-                // Prefer activeDigit (keypad hover) to selected-digit match
-                const isActiveSameNumber =
-                  activeDigit > 0 && val === activeDigit;
-
-                // halo disabled
+                const isActiveSameNumber = activeDigit > 0 && val === activeDigit;
                 const cellHasActiveCandidate = false;
 
-                let bg = "rgba(255,255,255,0.04)"; // default
+                let bg = "rgba(255,255,255,0.04)";
                 if (!hardMode && state === "wrong") {
-                  bg = selectedCell
-                    ? "rgba(239,68,68,0.45)"
-                    : "rgba(239,68,68,0.35)";
+                  bg = selectedCell ? "rgba(239,68,68,0.45)" : "rgba(239,68,68,0.35)";
                 } else if (isActiveSameNumber) {
-                  bg = "rgba(59,130,246,0.35)"; // same number (suppressed if hardMode via activeDigit=0)
+                  bg = "rgba(59,130,246,0.35)";
                 } else if (selectedCell) {
-                  bg = "rgba(59,130,246,0.25)"; // selected only
+                  bg = "rgba(59,130,246,0.25)";
                 } else if (cellHasActiveCandidate) {
-                  bg = "rgba(59,130,246,0.18)"; // candidate halo
+                  bg = "rgba(59,130,246,0.18)";
                 }
 
                 const numberColor = isActiveSameNumber
@@ -802,9 +776,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                       : "inset 0 0 0 2px rgba(59,130,246,0.65)"
                     : "none";
 
-                const sameNumberGlow = isActiveSameNumber
-                  ? "0 0 14px rgba(59,130,246,0.85)"
-                  : "none";
+                const sameNumberGlow = isActiveSameNumber ? "0 0 14px rgba(59,130,246,0.85)" : "none";
 
                 return (
                   <div
@@ -814,9 +786,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                       display: "grid",
                       placeItems: "center",
                       fontSize:
-                        size === 16
-                          ? "clamp(12px, 2.4vw, 20px)"
-                          : "clamp(18px, 3.2vw, 28px)",
+                        size === 16 ? "clamp(12px, 2.4vw, 20px)" : "clamp(18px, 3.2vw, 28px)",
                       fontWeight: given ? 700 : 600,
                       color: numberColor,
                       background: bg,
@@ -828,17 +798,12 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                       boxShadow: `${insetRing}, ${sameNumberGlow}`,
                     }}
                   >
-                    {val !== 0
-                      ? symbolFor(val)
-                      : (() => {
-                          const marks = getMarks(r, c);
-                          return marks.length ? (
-                            <MarksGrid
-                              marks={marks}
-                              activeDigit={activeDigit}
-                            />
-                          ) : null;
-                        })()}
+                    {val !== 0 ? (
+                      symbolFor(val)
+                    ) : (() => {
+                      const marks = getMarks(r, c);
+                      return marks.length ? <MarksGrid marks={marks} activeDigit={activeDigit} /> : null;
+                    })()}
                   </div>
                 );
               })
@@ -846,17 +811,17 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           </div>
         </div>
 
-        {/* RIGHT: toolbar — centered within board area only */}
+        {/* RIGHT: toolbar — narrow column */}
         <div
           style={{
-            height: containerSize, // exactly the board’s height
+            height: containerSize,
             display: "flex",
-            alignItems: "center", // vertical centering of the whole stack
-            justifyContent: "center", // horizontal centering in the 74px column
+            alignItems: "center",
+            justifyContent: "center",
             padding: 0,
             userSelect: "none",
             overflow: "hidden",
-            marginTop: headerHeight + 16, // push down to board top (header + gap)
+            marginTop: headerHeight + 16,
           }}
         >
           <div
@@ -864,158 +829,89 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 16, // keep inter-button spacing exactly the same
-              maxHeight: "100%", // never exceed board height
-              overflowY: "auto", // only appears if it would overflow
+              gap: 16,
+              maxHeight: "100%",
+              overflowY: "auto",
             }}
           >
             {[
-              {
-                key: "undo",
-                title: "Undo",
-                label: "Undo",
-                onClick: popHistory,
-                Icon: Icons.Undo,
-                disabled: history.length === 0,
-              },
+              { key: "undo", title: "Undo", label: "Undo", onClick: popHistory, Icon: Icons.Undo, disabled: history.length === 0 },
               {
                 key: "erase",
                 title: "Erase",
                 label: "Erase",
                 onClick: eraseSelected,
                 Icon: Icons.Eraser,
-                disabled:
-                  !selected || (selected && givens[selected.r][selected.c]),
+                disabled: !selected || (selected && givens[selected.r][selected.c]),
               },
-              {
-                key: "pencil",
-                title: pencilMode ? "Exit Pencil" : "Pencil",
-                label: "Pencil",
-                onClick: () => setPencilMode((v) => !v),
-                Icon: Icons.Pencil,
-                active: pencilMode,
-              },
-              {
-                key: "fastp",
-                title: "Fast Pencil",
-                label: "Fast Pencil",
-                onClick: fastPencil,
-                Icon: Icons.Sparkles,
-                active: showCandidates,
-                disabled: hardMode,
-              },
-              {
-                key: "hint",
-                title: hardMode ? "Hint (disabled in Hard Mode)" : "Hint", // NEW: clarify in tooltip
-                label: "Hint",
-                onClick: applyHint,
-                Icon: Icons.Bulb,
-                disabled: hardMode, // NEW: disable the button in Hard Mode
-              },
-              {
-                key: "reset",
-                title: "Reset",
-                label: "Reset",
-                onClick: resetPuzzle,
-                Icon: Icons.Reset,
-              },
+              { key: "pencil", title: pencilMode ? "Exit Pencil" : "Pencil", label: "Pencil", onClick: () => setPencilMode((v) => !v), Icon: Icons.Pencil, active: pencilMode },
+              { key: "fastp", title: "Fast Pencil", label: "Fast Pencil", onClick: fastPencil, Icon: Icons.Sparkles, active: showCandidates, disabled: hardMode },
+              { key: "hint", title: hardMode ? "Hint (disabled in Hard Mode)" : "Hint", label: "Hint", onClick: applyHint, Icon: Icons.Bulb, disabled: hardMode },
+              { key: "reset", title: "Reset", label: "Reset", onClick: resetPuzzle, Icon: Icons.Reset },
               {
                 key: "new",
-                title:
-                  initial && initial.length
-                    ? "New Game (disabled for initial puzzles)"
-                    : "New Game",
+                title: initial && initial.length ? "New Game (disabled for initial puzzles)" : "New Game",
                 label: "New Game",
                 onClick: newPuzzle,
                 Icon: Icons.Dice,
                 disabled: !!(initial && initial.length),
               },
-              {
-                key: "hard",
-                title: hardMode ? "Hard Mode: ON" : "Hard Mode: OFF",
-                label: "Hard Mode",
-                onClick: toggleHardMode,
-                Icon: Icons.Hard,
-                active: hardMode,
-              },
-            ].map(
-              ({ key, title, label, onClick, Icon: Ico, disabled, active }) => (
-                <button
-                  key={key}
-                  aria-label={title}
-                  title={title}
-                  onClick={onClick}
-                  disabled={!!disabled || isLoading}
-                  style={{
-                    width: 74,
-                    height: 92, // keep your button size
-                    border: "none",
-                    background: "transparent",
-                    color: "rgba(255, 255, 255, 0.85)",
-                    cursor: "pointer",
-                    borderRadius: 12,
-                    display: "grid",
-                    placeItems: "center",
-                    transition: "color 120ms ease, opacity 120ms ease",
-                    outline: "none",
-                    boxShadow: "none",
-                    WebkitTapHighlightColor: "transparent",
-                    appearance: "none",
-                    ...(active ? { color: "rgba(59,130,246,0.95)" } : null),
-                    ...(disabled || isLoading
-                      ? { opacity: 0.4, cursor: "not-allowed" }
-                      : null),
-                  }}
-                  onMouseEnter={(e) => {
-                    if (disabled || isLoading) return;
-                    (e.currentTarget as HTMLButtonElement).style.color =
-                      "rgba(59,130,246,0.95)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = active
-                      ? "rgba(59,130,246,0.95)"
-                      : "rgba(255,255,255,0.85)";
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 6,
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    <Ico />
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        letterSpacing: 0.2,
-                        textAlign: "center",
-                        whiteSpace: "normal",
-                        color: "currentColor",
-                        opacity: disabled || isLoading ? 0.9 : 1,
-                      }}
-                    >
-                      {label}
-                    </span>
-                  </div>
-                </button>
-              )
-            )}
+              { key: "hard", title: hardMode ? "Hard Mode: ON" : "Hard Mode: OFF", label: "Hard Mode", onClick: toggleHardMode, Icon: Icons.Hard, active: hardMode },
+            ].map(({ key, title, label, onClick, Icon: Ico, disabled, active }) => (
+              <button
+                key={key}
+                aria-label={title}
+                title={title}
+                onClick={onClick}
+                disabled={!!disabled || isLoading}
+                style={{
+                  width: 74,
+                  height: 92,
+                  border: "none",
+                  background: "transparent",
+                  color: "rgba(255, 255, 255, 0.85)",
+                  cursor: "pointer",
+                  borderRadius: 12,
+                  display: "grid",
+                  placeItems: "center",
+                  transition: "color 120ms ease, opacity 120ms ease",
+                  outline: "none",
+                  boxShadow: "none",
+                  WebkitTapHighlightColor: "transparent",
+                  appearance: "none",
+                  ...(active ? { color: "rgba(59,130,246,0.95)" } : null),
+                  ...(disabled || isLoading ? { opacity: 0.4, cursor: "not-allowed" } : null),
+                }}
+                onMouseEnter={(e) => {
+                  if (disabled || isLoading) return;
+                  (e.currentTarget as HTMLButtonElement).style.color = "rgba(59,130,246,0.95)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.color = active
+                    ? "rgba(59,130,246,0.95)"
+                    : "rgba(255,255,255,0.85)";
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, lineHeight: 1.1 }}>
+                  <Ico />
+                  <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: 0.2, textAlign: "center", whiteSpace: "normal", color: "currentColor", opacity: disabled || isLoading ? 0.9 : 1 }}>
+                    {label}
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Mobile keypad — ONLY digits; removed Clear / Reset / New Puzzle buttons */}
+      {/* Mobile keypad — BIGGER buttons; width equals board */}
       <div
         style={{
           display: "flex",
-          gap: 8,
+          gap: 10,
           justifyContent: "center",
           flexWrap: "wrap",
-          maxWidth: `calc(${containerSize} + 64px)`,
+          width: containerSize,   // exactly the board width
           margin: "0 auto",
         }}
       >
@@ -1023,26 +919,23 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           <button
             key={n}
             style={{
-              padding: "10px 0",
-              width: 40,
-              borderRadius: 10,
+              padding: "14px 0",   // bigger
+              width: 56,           // bigger
+              borderRadius: 12,
               background: "rgba(255,255,255,0.06)",
               border: "1px solid rgba(255,255,255,0.12)",
               color: "white",
-              fontSize: 16,
+              fontSize: 20,        // bigger font
               cursor: "pointer",
               transition: "transform 120ms ease, box-shadow 120ms ease",
               ...(highlightDigit === n && !hardMode
                 ? {
-                    boxShadow:
-                      "0 0 0 2px rgba(59,130,246,0.9), 0 4px 20px rgba(59,130,246,0.35)",
+                    boxShadow: "0 0 0 2px rgba(59,130,246,0.9), 0 6px 24px rgba(59,130,246,0.35)",
                     transform: "translateY(-1px)",
                   }
                 : null),
             }}
-            onClick={() =>
-              !isLoading && selected && setCell(selected.r, selected.c, n)
-            }
+            onClick={() => !isLoading && selected && setCell(selected.r, selected.c, n)}
             disabled={isLoading}
             onMouseEnter={() => {
               if (!hardMode) setHighlightDigit(n);
