@@ -840,7 +840,7 @@ export default function KillerSudokuBoard() {
                   const cellHasActiveCandidate =
                     !val && activeDigit > 0 && cellMarks.includes(activeDigit);
 
-                  let bg = "rgba(30, 32, 36, 1)";
+                  let bg = "rgba(8, 13, 24, 1)";
                   if (!hardMode && state === "wrong") {
                     bg = selectedCell
                       ? "rgba(239,68,68,0.45)"
@@ -987,12 +987,12 @@ export default function KillerSudokuBoard() {
                             lineHeight: 1,
                             userSelect: "none",
                             pointerEvents: "none",
-                            background: "rgba(30, 32, 36, 1)", // light box background
+                            background: "rgba(8, 13, 24, 1)", // light box background
                             padding: "2.5px 2.5px",
                             borderRadius: 4,
                             fontSize: 8,
                             fontWeight: 800,
-                            color: "rgba(255,252,252,0.95)",
+                            color: "rgba(255, 255, 255, 1)",
                             boxShadow: "none", // no shadow
                             textShadow: "none", // no shadow on text either
                           }}
