@@ -158,31 +158,29 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
   // Count of user-entered cells (non-givens that are non-zero)
   const entriesCount = React.useMemo(() => {
-  if (!base || !grid.length) return 0;
-  let count = 0;
-  for (let r = 0; r < grid.length; r++) {
-    for (let c = 0; c < grid.length; c++) {
-      if (grid[r][c] !== 0) count++; // count givens + user entries
+    if (!base || !grid.length) return 0;
+    let count = 0;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid.length; c++) {
+        if (grid[r][c] !== 0) count++; // count givens + user entries
+      }
     }
-  }
-  return count;
-}, [grid, base]);
-
+    return count;
+  }, [grid, base]);
 
   // Per-digit counts of user-entered numbers (for keypad badges)
   const perDigitCounts = React.useMemo(() => {
-  const sizeLocal = base?.length ?? derivedSize;
-  const counts = Array.from({ length: sizeLocal + 1 }, () => 0);
-  if (!grid.length) return counts;
-  for (let r = 0; r < grid.length; r++) {
-    for (let c = 0; c < grid.length; c++) {
-      const v = grid[r][c];
-      if (v > 0) counts[v] += 1; // include givens
+    const sizeLocal = base?.length ?? derivedSize;
+    const counts = Array.from({ length: sizeLocal + 1 }, () => 0);
+    if (!grid.length) return counts;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid.length; c++) {
+        const v = grid[r][c];
+        if (v > 0) counts[v] += 1; // include givens
+      }
     }
-  }
-  return counts;
-}, [grid, base, derivedSize]);
-
+    return counts;
+  }, [grid, base, derivedSize]);
 
   // solution-aware "wrong" detection (disabled in Hard Mode)
   const cellState = React.useMemo<CellState[][]>(() => {
@@ -741,9 +739,9 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                     verticalAlign: "middle",
                   }}
                   title="All filled cells (givens + your entries)"
->
-  Filled: {entriesCount}
-</span>
+                >
+                  Filled: {entriesCount}
+                </span>
               )}
             </div>
             <div style={{ justifySelf: "center", opacity: 0.95 }}>
@@ -1023,70 +1021,97 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
       {/* Mobile keypad — bigger numbers and per-digit entered counts; width equals board */}
       <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between", // fills the row, equal L/R edges
-      gap: 12,                         // more space between buttons
-      padding: "0 8px",                // equal side gutters
-      width: containerSize,            // exactly board width
-    }}
-  >
-    {Array.from({ length: size }, (_, i) => i + 1).map((n) => {
-      const entered = perDigitCounts[n] ?? 0;
-      const isActive = !hardMode && highlightDigit === n;
-      return (
-        <button
-          key={n}
-          style={{
-            padding: "12px 0 8px",
-            width: 58,
-            borderRadius: 12,
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            color: "white",
-            cursor: "pointer",
-            transition: "transform 120ms ease, box-shadow 120ms ease",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            lineHeight: 1.05,
-            ...(isActive
-              ? {
-                  boxShadow:
-                    "0 0 0 2px rgba(59,130,246,0.9), 0 6px 24px rgba(59,130,246,0.35)",
-                  transform: "translateY(-1px)",
-                }
-              : null),
-          }}
-          onClick={() => !isLoading && selected && setCell(selected.r, selected.c, n)}
-          disabled={isLoading}
-          onMouseEnter={() => { if (!hardMode) setHighlightDigit(n); }}
-          onMouseLeave={() => { if (!hardMode) setHighlightDigit(0); }}
-          onFocus={() => { if (!hardMode) setHighlightDigit(n); }}
-          onBlur={() => { if (!hardMode) setHighlightDigit(0); }}
-          aria-pressed={isActive}
-          aria-label={`Digit ${symbolFor(n)}. Entered ${entered}`}
-          title={`Entered: ${entered}`}
-        >
-          <span style={{ fontSize: 26, fontWeight: 800 }}>{symbolFor(n)}</span>
-          <span
-            style={{
-              marginTop: 4,
-              fontSize: 11,
-              opacity: 0.9,
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 8,
-              padding: "2px 6px",
-            }}
-          >
-            {entered}
-          </span>
-        </button>
-      );
-    })}
-  </div>
+        style={{
+          display: "flex",
+          justifyContent: "space-between", // fills the row, equal L/R edges
+          gap: 12, // more space between buttons
+          padding: "0 8px", // equal side gutters
+          width: containerSize, // exactly board width
+        }}
+      >
+        {Array.from({ length: size }, (_, i) => i + 1).map((n) => {
+          const entered = perDigitCounts[n] ?? 0;
+          const isActive = !hardMode && highlightDigit === n;
 
+          // choose whatever symbol you like here
+          const hardModeSymbol = "•";
+          const badgeContent = hardMode ? hardModeSymbol : entered;
+
+          return (
+            <button
+              key={n}
+              style={{
+                padding: "12px 0 8px",
+                width: 58,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "white",
+                cursor: "pointer",
+                transition: "transform 120ms ease, box-shadow 120ms ease",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                lineHeight: 1.05,
+                ...(isActive
+                  ? {
+                      boxShadow:
+                        "0 0 0 2px rgba(59,130,246,0.9), 0 6px 24px rgba(59,130,246,0.35)",
+                      transform: "translateY(-1px)",
+                    }
+                  : null),
+              }}
+              onClick={() =>
+                !isLoading && selected && setCell(selected.r, selected.c, n)
+              }
+              disabled={isLoading}
+              onMouseEnter={() => {
+                if (!hardMode) setHighlightDigit(n);
+              }}
+              onMouseLeave={() => {
+                if (!hardMode) setHighlightDigit(0);
+              }}
+              onFocus={() => {
+                if (!hardMode) setHighlightDigit(n);
+              }}
+              onBlur={() => {
+                if (!hardMode) setHighlightDigit(0);
+              }}
+              aria-pressed={isActive}
+              aria-label={
+                hardMode
+                  ? `Digit ${symbolFor(n)}`
+                  : `Digit ${symbolFor(n)}. Entered ${entered}`
+              }
+              title={
+                hardMode ? "Count hidden in Hard Mode" : `Entered: ${entered}`
+              }
+            >
+              <span style={{ fontSize: 26, fontWeight: 800 }}>
+                {symbolFor(n)}
+              </span>
+
+              {/* badge stays visible; shows a symbol in Hard Mode */}
+              <span
+                style={{
+                  marginTop: 4,
+                  fontSize: 11,
+                  opacity: 0.9,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 8,
+                  padding: "2px 6px",
+                  // if you want the symbol slightly bolder:
+                  fontWeight: hardMode ? 800 : 600,
+                  letterSpacing: hardMode ? 1 : 0,
+                }}
+              >
+                {badgeContent}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* Toast / hint message (fixed position) */}
       {hintMsg && (
