@@ -1,24 +1,17 @@
-// src\components\sudoku\SudokuOptionsDialog.tsx
+// src/components/sudoku/SudokuOptionsDialog.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Dialog from "../sudoku/SudokuDialog.tsx";
 
-export type Difficulty =
-  | "easy"
-  | "medium"
-  | "hard"
-  | "expert"
-  | "extreme"
-  | "16x16";
+export type Difficulty = "easy" | "medium" | "hard" | "expert" | "extreme" | "16x16";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onStartNew: (difficulty: Difficulty) => void;
+  onStartNew: (difficulty: Difficulty) => void; // classic sudoku only
   onContinue: () => void;
 };
 
-// Load a dedicated UI font for button text (separate from the title font)
 function useUIButtonFont() {
   React.useEffect(() => {
     const id = "sudoku-ui-font-poppins";
@@ -49,12 +42,10 @@ const buttonBase: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: 8,
-  // floating basics
   transition: "transform 120ms ease, box-shadow 120ms ease",
   willChange: "transform",
 };
 
-// Reusable floating button component (solid color, no shine)
 type FloatingButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   bg: string;
 };
@@ -78,11 +69,7 @@ function FloatingButton({
   const combinedStyle: React.CSSProperties = {
     ...buttonBase,
     background: bg,
-    transform: hover
-      ? active
-        ? "translateY(-1px)"
-        : "translateY(-2px)"
-      : "translateY(0)",
+    transform: hover ? (active ? "translateY(-1px)" : "translateY(-2px)") : "translateY(0)",
     boxShadow: active ? activeShadow : hover ? hoverShadow : baseShadow,
     ...style,
   };
@@ -112,9 +99,9 @@ function FloatingButton({
   );
 }
 
-const startNewColor = "#16a34a"; // green
-const continueColor = "#3b82f6"; // blue
-const closeColor = "#4b5563"; // gray
+const startNewColor = "#16a34a";
+const continueColor = "#3b82f6";
+const closeColor = "#4b5563";
 
 export default function SudokuOptionsDialog({
   open,
@@ -126,14 +113,16 @@ export default function SudokuOptionsDialog({
   useUIButtonFont();
 
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const difficulties: Difficulty[] = [
+
+  // Classic items without 16x16
+  const classicBase: Exclude<Difficulty, "16x16">[] = [
     "easy",
     "medium",
     "hard",
     "expert",
     "extreme",
-    "16x16",
   ];
+  const sixteens: Difficulty = "16x16";
 
   const stack: React.CSSProperties = {
     display: "flex",
@@ -142,15 +131,18 @@ export default function SudokuOptionsDialog({
     marginTop: 20,
   };
 
-  const startNewWrap: React.CSSProperties = {
-    position: "relative",
-  };
+  const startNewWrap: React.CSSProperties = { position: "relative" };
 
+  // Scrollable dropdown
   const menu: React.CSSProperties = {
     position: "absolute",
     top: "calc(100% + 8px)",
     left: 0,
     minWidth: "100%",
+    maxHeight: "60vh",
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch",
+    overscrollBehavior: "contain",
     borderRadius: 12,
     background: "rgba(24,24,27,0.98)",
     border: "1px solid rgba(255,255,255,0.12)",
@@ -199,22 +191,53 @@ export default function SudokuOptionsDialog({
 
           {menuOpen && (
             <div role="menu" style={menu}>
-              {difficulties.map((lvl) => (
+              {/* Classic Easy → Extreme */}
+              {classicBase.map((lvl) => (
                 <button
-                  key={lvl}
+                  key={`classic-${lvl}`}
                   role="menuitem"
                   style={item}
                   onClick={() => {
                     onStartNew(lvl);
-                    localStorage.setItem("sudoku:difficulty", lvl); // persist
+                    localStorage.setItem("sudoku:difficulty", lvl);
                     setMenuOpen(false);
                     onOpenChange(false);
-                    navigate("/sudoku", { state: { difficulty: lvl } }); // pass via state
+                    navigate("/sudoku", { state: { difficulty: lvl } });
                   }}
                 >
-                  {lvl === "16x16" ? "16×16" : cap(lvl)}
+                  {cap(lvl)}
                 </button>
               ))}
+
+              {/* Single Killer Sudoku item (no difficulties), placed between Extreme and 16×16 */}
+              <button
+                key="killer"
+                role="menuitem"
+                style={item}
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenChange(false);
+                  navigate("/killer"); // let /killer choose its default difficulty
+                }}
+              >
+                Killer Sudoku
+              </button>
+
+              {/* 16×16 at the end */}
+              <button
+                key={`classic-${sixteens}`}
+                role="menuitem"
+                style={item}
+                onClick={() => {
+                  onStartNew(sixteens);
+                  localStorage.setItem("sudoku:difficulty", sixteens);
+                  setMenuOpen(false);
+                  onOpenChange(false);
+                  navigate("/sudoku", { state: { difficulty: sixteens } });
+                }}
+              >
+                16×16
+              </button>
             </div>
           )}
         </div>
@@ -230,15 +253,7 @@ export default function SudokuOptionsDialog({
         >
           Continue
         </FloatingButton>
-        <FloatingButton
-          bg="#9333ea" // purple
-          onClick={() => {
-            onOpenChange(false);
-            navigate("/killer");
-          }}
-        >
-          Killer Sudoku
-        </FloatingButton>
+
         <FloatingButton bg={closeColor} onClick={() => onOpenChange(false)}>
           Close
         </FloatingButton>
