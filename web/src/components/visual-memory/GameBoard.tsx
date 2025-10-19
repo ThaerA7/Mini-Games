@@ -9,6 +9,7 @@ type Props = {
   selected: Set<number>             // user selections during "guess"
   onCellClick: (index: number) => void
   isCellCorrect: (index: number) => boolean
+  isBlurred?: boolean
 }
 
 export default function GameBoard({
@@ -17,7 +18,8 @@ export default function GameBoard({
   highlightCells,
   selected,
   onCellClick,
-  isCellCorrect
+  isCellCorrect,
+  isBlurred = false
 }: Props) {
   const count = gridSize * gridSize
   const isShowing = phase === 'show'
@@ -42,7 +44,10 @@ export default function GameBoard({
         gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
         gap: 10,
         touchAction: 'manipulation',
+        filter: isBlurred ? 'blur(6px)' : 'none',
+        transition: 'filter 160ms ease',
       }}
+      aria-label="game-board"
     >
       {Array.from({ length: count }).map((_, i) => {
         const isInPattern = highlightCells.includes(i)
@@ -50,7 +55,7 @@ export default function GameBoard({
         const isCorrectPick = isPicked && isCellCorrect(i)
         const isWrongPick = isPicked && !isCellCorrect(i)
 
-        let bg = cellBase.background
+        let bg = cellBase.background as string
         let shadow = 'none'
         if (isShowing && isInPattern) {
           bg = '#ffffff'
