@@ -61,7 +61,18 @@ export default function VisualMemoryPage() {
       .vm-btn:active { transform: translateY(0) scale(.985); }
       .vm-btn:disabled { opacity: .65; cursor: not-allowed; }
 
-    
+    /* Grid/Button divider */
+      .vm-divider {
+        height: 1px;
+        margin: 12px 0 10px;
+        border: none;
+        background: linear-gradient(
+          90deg,
+          rgba(255,255,255,0),
+          rgba(255,255,255,0.18),
+          rgba(255,255,255,0)
+        );
+      }
       /* Flat, full-width variant for the bottom button (no floating) */
       .vm-btn--flat { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); box-shadow: none !important; transform: none !important; backdrop-filter: blur(6px); }
       .vm-btn--flat:hover, .vm-btn--flat:active { background: rgba(255,255,255,0.12); box-shadow: none !important; transform: none !important; }
@@ -190,6 +201,8 @@ export default function VisualMemoryPage() {
                 filter: isBlurred ? "blur(6px)" : "none",
               }}
             >
+              <hr className="vm-divider" />
+
               <Button
                 className="vm-btn--flat vm-btn--full"
                 onClick={restartRun}
