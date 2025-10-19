@@ -1,8 +1,8 @@
 // src/components/BoxesGrid.tsx
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
 import SudokuOptionsDialog from './sudoku/SudokuOptionsDialog'
 import SudokuImg from '../assets/Sudoku.png'
+import MemoryOptionsDialog from './visual-memory/MemoryOptionsDialog'
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'extreme' | '16x16'
 
@@ -10,7 +10,7 @@ export default function BoxesGrid() {
   const boxes = Array.from({ length: 15 })
   const [pressedIndex, setPressedIndex] = React.useState<number | null>(null)
   const [sudokuOpen, setSudokuOpen] = React.useState(false)
-  const navigate = useNavigate()
+  const [memoryOpen, setMemoryOpen] = React.useState(false)
 
   const baseBoxStyle: React.CSSProperties = {
     aspectRatio: '1 / 1',
@@ -115,7 +115,7 @@ export default function BoxesGrid() {
                 onPointerUp={clearPress}
                 onPointerLeave={clearPress}
                 onPointerCancel={clearPress}
-                onClick={() => navigate('/memory')}
+                onClick={() => setMemoryOpen(true)}
                 aria-label="Open Visual Memory Game"
               >
                 <div
@@ -146,7 +146,10 @@ export default function BoxesGrid() {
           )
         })}
       </div>
-
+<MemoryOptionsDialog
+  open={memoryOpen}
+  onOpenChange={setMemoryOpen}
+/>
       <SudokuOptionsDialog
         open={sudokuOpen}
         onOpenChange={setSudokuOpen}

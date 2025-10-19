@@ -219,34 +219,33 @@ export default function VisualMemoryPage() {
                   inset: 0,
                   display: "grid",
                   placeItems: "center",
-                  pointerEvents: "none",
+                  pointerEvents: "auto",
                 }}
               >
-                <div
-                  style={{
-                    pointerEvents: "auto",
-                    display: "grid",
-                    gap: 10,
-                    placeItems: "center",
-                    background: "rgba(6, 8, 18, 0.55)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 14,
-                    padding: 16,
-                    backdropFilter: "blur(6px)",
-                  }}
-                >
-                  {showStartOverlay && (
-                    <Button onClick={startRun}>Start</Button>
-                  )}
-                  {showLostOverlay && (
-                    <>
-                      <div style={{ fontSize: 14, opacity: 0.9 }}>
-                        Out of lives!
-                      </div>
-                      <Button onClick={restartRun}>Restart</Button>
-                    </>
-                  )}
-                </div>
+                {showStartOverlay ? (
+                  // ✅ Only the Start button (no surrounding container)
+                  <Button onClick={startRun}>Start</Button>
+                ) : (
+                  // Lost overlay stays as-is (keeps its container)
+                  <div
+                    style={{
+                      pointerEvents: "auto",
+                      display: "grid",
+                      gap: 10,
+                      placeItems: "center",
+                      background: "rgba(6, 8, 18, 0.55)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 14,
+                      padding: 16,
+                      backdropFilter: "blur(6px)",
+                    }}
+                  >
+                    <div style={{ fontSize: 14, opacity: 0.9 }}>
+                      Out of lives!
+                    </div>
+                    <Button onClick={restartRun}>Restart</Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
