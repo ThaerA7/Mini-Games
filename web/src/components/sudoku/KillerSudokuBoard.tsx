@@ -39,10 +39,10 @@ export default function KillerSudokuBoard() {
       size: 9,
       minCage: 2,
       maxCage: 4,
-      difficulty: "hard", // <- nudge toward decently hard
-      baseNumbersCount: 33, // <- reveal a handful of base numbers
-      symmetricGivens: true, // <- nicer look
-      avoidEasyPairSums: true, // <- avoid trivial 2-cell sums where possible
+      difficulty: "hard",
+      baseNumbersCount: 22,
+      symmetricGivens: true,
+      avoidEasyPairSums: true,
     });
     setPuzzle(p);
     setGrid(deepCopy(p.givens));
@@ -197,81 +197,78 @@ export default function KillerSudokuBoard() {
   );
 
   // solution-aware cell state (disabled in Hard Mode)
-const cellState: CellState[][] = React.useMemo(() => {
-  if (!puzzle) return [] as CellState[][];
-  if (hardMode) {
-    // Hide correctness in Hard Mode
+  const cellState: CellState[][] = React.useMemo(() => {
+    if (!puzzle) return [] as CellState[][];
+    if (hardMode) {
+      // Hide correctness in Hard Mode
+      return grid.map((row, r) =>
+        row.map((v, c) => (v === 0 ? "empty" : givens[r][c] ? "given" : "ok"))
+      );
+    }
+    // Not hard mode: check directly against solution
     return grid.map((row, r) =>
-      row.map((v, c) => (v === 0 ? "empty" : givens[r][c] ? "given" : "ok"))
+      row.map((v, c) => {
+        if (v === 0) return "empty";
+        if (givens[r][c]) return "given";
+        return v === puzzle.solution[r][c] ? "ok" : "wrong";
+      })
     );
-  }
-  // Not hard mode: check directly against solution
-  return grid.map((row, r) =>
-    row.map((v, c) => {
-      if (v === 0) return "empty";
-      if (givens[r][c]) return "given";
-      return v === puzzle.solution[r][c] ? "ok" : "wrong";
-    })
-  );
-}, [grid, givens, puzzle, hardMode]);
-
+  }, [grid, givens, puzzle, hardMode]);
 
   // Detect solved & overlay
-React.useEffect(() => {
-  if (!puzzle) return;
+  React.useEffect(() => {
+    if (!puzzle) return;
 
-  // Must be fully filled
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (grid[r][c] === 0) return;
+    // Must be fully filled
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (grid[r][c] === 0) return;
+      }
     }
-  }
 
-  // Must match the solution exactly
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (grid[r][c] !== puzzle.solution[r][c]) return;
+    // Must match the solution exactly
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (grid[r][c] !== puzzle.solution[r][c]) return;
+      }
     }
-  }
 
-  if (!isSolved) {
-    setIsSolved(true);
-    setShowSolvedOverlay(true);
-  }
-}, [grid, puzzle, size, isSolved]);
-
+    if (!isSolved) {
+      setIsSolved(true);
+      setShowSolvedOverlay(true);
+    }
+  }, [grid, puzzle, size, isSolved]);
 
   // ---------- Placement & notes ----------
   const placeValue = (r: number, c: number, v: number) => {
-  if (!puzzle || isSolved) return;
-  if (givens[r][c]) return;
-  setGrid((g) => {
-    const copy = deepCopy(g);
-    const N = copy.length;
-    if (v < 0 || v > N) return copy;
-    if (copy[r][c] === v) return copy;
+    if (!puzzle || isSolved) return;
+    if (givens[r][c]) return;
+    setGrid((g) => {
+      const copy = deepCopy(g);
+      const N = copy.length;
+      if (v < 0 || v > N) return copy;
+      if (copy[r][c] === v) return copy;
 
-    pushHistory();
+      pushHistory();
 
-    // Apply the change
-    copy[r][c] = v;
+      // Apply the change
+      copy[r][c] = v;
 
-    // clear notes in that cell
-    setNotes((n) => {
-      const nn = copyNotes(n);
-      nn[r][c].clear();
-      return nn;
+      // clear notes in that cell
+      setNotes((n) => {
+        const nn = copyNotes(n);
+        nn[r][c].clear();
+        return nn;
+      });
+
+      // Solution-aware mistake counting (only in non-hard mode)
+      if (!hardMode && v !== 0 && v !== puzzle.solution[r][c]) {
+        setMistakes((m) => m + 1);
+      }
+
+      return copy;
     });
-
-    // Solution-aware mistake counting (only in non-hard mode)
-    if (!hardMode && v !== 0 && v !== puzzle.solution[r][c]) {
-      setMistakes((m) => m + 1);
-    }
-
-    return copy;
-  });
-};
-
+  };
 
   const toggleNote = (r: number, c: number, v: number) => {
     if (!puzzle || isSolved) return;

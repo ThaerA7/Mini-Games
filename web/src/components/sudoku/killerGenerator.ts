@@ -15,17 +15,17 @@ export type KillerPuzzle = {
 };
 
 export type KillerOptions = {
-  size?: 9 | 16;             // default 9
-  minCage?: number;          // default 2
-  maxCage?: number;          // default 4
-  seedAttempts?: number;     // default depends on difficulty
+  size?: 9 | 16; // default 9
+  minCage?: number; // default 2
+  maxCage?: number; // default 4
+  seedAttempts?: number; // default depends on difficulty
   difficulty?: "easy" | "medium" | "hard";
   baseNumbersCount?: number; // how many givens to reveal (0 = classic killer)
   symmetricGivens?: boolean; // place givens with 180° rotational symmetry
   avoidEasyPairSums?: boolean; // avoid pair sums {3,4,16,17} (9x9) where possible
 };
 
-const randPick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+const randPick = <T>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
 export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
   const size: 9 | 16 = (opts.size ?? 9) as 9 | 16;
@@ -36,11 +36,14 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
     opts.seedAttempts ??
     (difficulty === "hard" ? 4 : difficulty === "medium" ? 3 : 2);
 
-  const avoidEasyPairSums = opts.avoidEasyPairSums ?? (difficulty !== "easy");
+  const avoidEasyPairSums = opts.avoidEasyPairSums ?? difficulty !== "easy";
 
   // Use your solved classic grid
-  const preset = size === 16 ? "16x16" : difficulty === "easy" ? "easy" : "hard";
-  const solved = generateSudoku(preset as any, { ensureDifficulty: false }).solution;
+  const preset =
+    size === 16 ? "16x16" : difficulty === "easy" ? "easy" : "hard";
+  const solved = generateSudoku(preset as any, {
+    ensureDifficulty: false,
+  }).solution;
 
   const used: boolean[][] = Array.from({ length: size }, () =>
     Array(size).fill(false)
@@ -49,7 +52,8 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
   const cages: KillerCage[] = [];
   let nextId = 1;
 
-  const inBounds = (r: number, c: number) => r >= 0 && c >= 0 && r < size && c < size;
+  const inBounds = (r: number, c: number) =>
+    r >= 0 && c >= 0 && r < size && c < size;
 
   const neigh = [
     [1, 0],
@@ -63,21 +67,21 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
   const sizeWeights =
     difficulty === "hard"
       ? new Map<number, number>([
-          [2, 0.30],
-          [3, 0.40],
-          [4, 0.30],
+          [2, 0.3],
+          [3, 0.4],
+          [4, 0.3],
         ])
       : difficulty === "medium"
-      ? new Map<number, number>([
-          [2, 0.45],
-          [3, 0.35],
-          [4, 0.20],
-        ])
-      : new Map<number, number>([
-          [2, 0.55],
-          [3, 0.30],
-          [4, 0.15],
-        ]);
+        ? new Map<number, number>([
+            [2, 0.45],
+            [3, 0.35],
+            [4, 0.2],
+          ])
+        : new Map<number, number>([
+            [2, 0.55],
+            [3, 0.3],
+            [4, 0.15],
+          ]);
 
   const sampleTargetSize = () => {
     const candidates = [];
@@ -94,7 +98,8 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
       const c = Math.floor(Math.random() * size);
       if (!used[r][c]) return { r, c };
     }
-    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!used[r][c]) return { r, c };
+    for (let r = 0; r < size; r++)
+      for (let c = 0; c < size; c++) if (!used[r][c]) return { r, c };
     return null;
   };
 
@@ -103,7 +108,8 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
     const border: Cell[] = [];
     for (const cur of cage.cells) {
       for (const [dr, dc] of neigh) {
-        const nr = cur.r + dr, nc = cur.c + dc;
+        const nr = cur.r + dr,
+          nc = cur.c + dc;
         if (!inBounds(nr, nc) || used[nr][nc]) continue;
         border.push({ r: nr, c: nc });
       }
@@ -149,7 +155,8 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
       taken.add(d);
 
       for (const [dr, dc] of neigh) {
-        const nr = cur.r + dr, nc = cur.c + dc;
+        const nr = cur.r + dr,
+          nc = cur.c + dc;
         if (!inBounds(nr, nc) || used[nr][nc]) continue;
         frontier.push({ r: nr, c: nc });
       }
@@ -178,12 +185,19 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
 
   // ---- Givens (base numbers) ----
   const givens = Array.from({ length: size }, () => Array(size).fill(0));
-  const wanted = Math.max(0, opts.baseNumbersCount ?? (difficulty === "hard" ? 10 : difficulty === "medium" ? 14 : 18));
+  const wanted = Math.max(
+    0,
+    opts.baseNumbersCount ??
+      (difficulty === "hard" ? 10 : difficulty === "medium" ? 14 : 18)
+  );
   if (wanted > 0) {
     // helper: cage lookup to avoid fully revealing a 2-cell cage
-    const cageIdGrid = Array.from({ length: size }, () => Array<number>(size).fill(0));
-    for (const c of cages) for (const cell of c.cells) cageIdGrid[cell.r][cell.c] = c.id;
-    const cageById = new Map<number, KillerCage>(cages.map(c => [c.id, c]));
+    const cageIdGrid = Array.from({ length: size }, () =>
+      Array<number>(size).fill(0)
+    );
+    for (const c of cages)
+      for (const cell of c.cells) cageIdGrid[cell.r][cell.c] = c.id;
+    const cageById = new Map<number, KillerCage>(cages.map((c) => [c.id, c]));
 
     const selected = new Set<string>();
     const pushCell = (r: number, c: number) => selected.add(`${r},${c}`);
@@ -191,7 +205,8 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
 
     // Candidate order: prefer cells in 3–4 cages (slightly more interesting)
     const allCells: Cell[] = [];
-    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) allCells.push({ r, c });
+    for (let r = 0; r < size; r++)
+      for (let c = 0; c < size; c++) allCells.push({ r, c });
     allCells.sort((a, b) => {
       const ca = cageById.get(cageIdGrid[a.r][a.c])!;
       const cb = cageById.get(cageIdGrid[b.r][b.c])!;
@@ -211,11 +226,13 @@ export function generateKillerSudoku(opts: KillerOptions = {}): KillerPuzzle {
       const thisCage = cageById.get(thisId)!;
       const thatCage = cageById.get(thatId)!;
       if (thisCage.cells.length === 2) {
-        const other = thisCage.cells.find(x => !(x.r === r && x.c === c))!;
+        const other = thisCage.cells.find((x) => !(x.r === r && x.c === c))!;
         if (hasCell(other.r, other.c)) return false;
       }
       if (thatCage.cells.length === 2) {
-        const other = thatCage.cells.find(x => !(x.r === mirrorR && x.c === mirrorC))!;
+        const other = thatCage.cells.find(
+          (x) => !(x.r === mirrorR && x.c === mirrorC)
+        )!;
         if (hasCell(other.r, other.c)) return false;
       }
 

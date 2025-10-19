@@ -4,7 +4,13 @@ import type { Difficulty as GenDifficulty } from "./puzzleGenerator.ts";
 export function parseDifficulty(d: string | undefined): GenDifficulty {
   const v = String(d ?? "medium").toLowerCase();
   if (v === "16x16") return "16x16";
-  if (v === "easy" || v === "medium" || v === "hard" || v === "expert" || v === "extreme") {
+  if (
+    v === "easy" ||
+    v === "medium" ||
+    v === "hard" ||
+    v === "expert" ||
+    v === "extreme"
+  ) {
     return v;
   }
   return "medium";
@@ -61,7 +67,11 @@ export function hasConflict(g: number[][], r: number, c: number, v: number) {
 }
 
 // Candidate computation (shared by UI & solver)
-export function computeCandidates(g: number[][], r: number, c: number): number[] {
+export function computeCandidates(
+  g: number[][],
+  r: number,
+  c: number
+): number[] {
   const size = g.length;
   if (g[r][c] !== 0) return [];
   const used = new Set<number>();

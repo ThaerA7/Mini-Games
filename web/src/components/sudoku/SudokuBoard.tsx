@@ -91,7 +91,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   React.useEffect(() => {
     loadBase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initial, difficulty]);
+  }, [initial, difficulty]);
 
   // Board state (depends on base)
   const [grid, setGrid] = React.useState<number[][]>([]);
@@ -234,12 +234,17 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
 
     let solvedFlag = true;
     if (solution) {
-      solvedFlag = grid.every((row, r) => row.every((v, c) => v === solution[r][c]));
+      solvedFlag = grid.every((row, r) =>
+        row.every((v, c) => v === solution[r][c])
+      );
     } else {
       outer: for (let r = 0; r < grid.length; r++) {
         for (let c = 0; c < grid.length; c++) {
           const v = grid[r][c];
-          if (v === 0 || hasConflict(grid, r, c, v)) { solvedFlag = false; break outer; }
+          if (v === 0 || hasConflict(grid, r, c, v)) {
+            solvedFlag = false;
+            break outer;
+          }
         }
       }
     }
@@ -338,9 +343,9 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
   // TOTAL layout width = board (containerSize) + gap (16px) + tools (74px)
   const layoutWidth = `calc(${containerSize} + 16px + 74px)`;
 
-  const borderColor = "rgba(255,255,255,0.25)";
+  const borderColor = "rgba(255,255,255,0.4)";
   const thin = "1px";
-  const thick = "2px";
+  const thick = "2.5px";
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -784,7 +789,16 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
               userSelect: "none",
             }}
           >
-            <div style={{ justifySelf: "start", display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', opacity: 0.9 }}>
+            <div
+              style={{
+                justifySelf: "start",
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                flexWrap: "wrap",
+                opacity: 0.9,
+              }}
+            >
               <span> Mistakes: {hardMode ? "—" : mistakes}</span>
               {!hardMode && (
                 <span
@@ -832,7 +846,13 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
           </div>
 
           {/* Board + overlay wrapper */}
-          <div style={{ position: "relative", width: containerSize, height: containerSize }}>
+          <div
+            style={{
+              position: "relative",
+              width: containerSize,
+              height: containerSize,
+            }}
+          >
             {/* Board */}
             <div
               ref={boardRef}
@@ -851,7 +871,9 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                 boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
                 overflow: "hidden",
                 userSelect: "none",
-                filter: showSolvedOverlay ? "blur(4px) saturate(0.8) brightness(0.9)" : "none",
+                filter: showSolvedOverlay
+                  ? "blur(4px) saturate(0.8) brightness(0.9)"
+                  : "none",
                 pointerEvents: showSolvedOverlay ? "none" : "auto",
                 transition: "filter 200ms ease",
               }}
@@ -882,7 +904,7 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                     bg = "rgba(59,130,246,0.18)";
                   }
 
-                  const givenColor = "rgba(255,255,255,0.78)"; 
+                  const givenColor = "rgba(255,255,255,0.78)";
                   const entryColor = "rgba(147, 197, 253, 0.95)";
                   const baseNumberColor = given ? givenColor : entryColor;
                   const numberColor = isActiveSameNumber
@@ -999,7 +1021,13 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                     </div>
                   </div>
 
-                  <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.2 }}>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 900,
+                      letterSpacing: 0.2,
+                    }}
+                  >
                     Puzzle Solved!
                   </div>
                   <div style={{ opacity: 0.85, marginTop: 4, fontSize: 13 }}>
@@ -1017,23 +1045,28 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                       flexWrap: "wrap",
                     }}
                   >
-                    {[{
-                      k: "time",
-                      name: "Time",
-                      val: formatTime(seconds),
-                    }, {
-                      k: "mistakes",
-                      name: "Mistakes",
-                      val: String(mistakes),
-                    }, {
-                      k: "hints",
-                      name: "Hints",
-                      val: String(hintsUsed),
-                    }, {
-                      k: "difficulty",
-                      name: "Difficulty",
-                      val: label,
-                    }].map((s) => (
+                    {[
+                      {
+                        k: "time",
+                        name: "Time",
+                        val: formatTime(seconds),
+                      },
+                      {
+                        k: "mistakes",
+                        name: "Mistakes",
+                        val: String(mistakes),
+                      },
+                      {
+                        k: "hints",
+                        name: "Hints",
+                        val: String(hintsUsed),
+                      },
+                      {
+                        k: "difficulty",
+                        name: "Difficulty",
+                        val: label,
+                      },
+                    ].map((s) => (
                       <div
                         key={s.k}
                         style={{
@@ -1044,8 +1077,12 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                           minWidth: 110,
                         }}
                       >
-                        <div style={{ fontSize: 11, opacity: 0.85 }}>{s.name}</div>
-                        <div style={{ fontSize: 16, fontWeight: 800 }}>{s.val}</div>
+                        <div style={{ fontSize: 11, opacity: 0.85 }}>
+                          {s.name}
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800 }}>
+                          {s.val}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1190,7 +1227,10 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
               ({ key, title, label, onClick, Icon: Ico, disabled, active }) => {
                 const baseDisabled = !!disabled || isLoading;
                 // Keep Reset/New always available (except while generating)
-                const overlayBlock = key === "reset" || key === "new" ? false : (isSolved || showSolvedOverlay);
+                const overlayBlock =
+                  key === "reset" || key === "new"
+                    ? false
+                    : isSolved || showSolvedOverlay;
                 const isDisabled = baseDisabled || overlayBlock;
                 return (
                   <button
@@ -1225,9 +1265,10 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                         "rgba(59,130,246,0.95)";
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = active
-                        ? "rgba(59,130,246,0.95)"
-                        : "rgba(255,255,255,0.85)";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        active
+                          ? "rgba(59,130,246,0.95)"
+                          : "rgba(255,255,255,0.85)";
                     }}
                   >
                     <div
@@ -1303,10 +1344,15 @@ export default function SudokuBoard({ initial, difficulty = "Medium" }: Props) {
                       transform: "translateY(-1px)",
                     }
                   : null),
-                ...(showSolvedOverlay ? { opacity: 0.5, cursor: "not-allowed" } : null),
+                ...(showSolvedOverlay
+                  ? { opacity: 0.5, cursor: "not-allowed" }
+                  : null),
               }}
               onClick={() =>
-                !isLoading && !showSolvedOverlay && selected && setCell(selected.r, selected.c, n)
+                !isLoading &&
+                !showSolvedOverlay &&
+                selected &&
+                setCell(selected.r, selected.c, n)
               }
               disabled={isLoading || showSolvedOverlay}
               onMouseEnter={() => {

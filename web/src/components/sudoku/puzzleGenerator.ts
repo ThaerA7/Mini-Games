@@ -1,4 +1,3 @@
-
 export type Difficulty =
   | "easy"
   | "medium"
@@ -78,10 +77,7 @@ export function generateSudoku(
   const box = BOX_BY_SIZE[size];
   const symmetry = opts.symmetry ?? "central";
   const ensureDifficulty = opts.ensureDifficulty ?? true;
-const maxAttempts = Math.max(
-  1,
-  opts.maxAttempts ?? (size === 16 ? 60 : 25)
-);
+  const maxAttempts = Math.max(1, opts.maxAttempts ?? (size === 16 ? 60 : 25));
   const coverageGoal =
     size === 16
       ? COVERAGE_GOAL_16
@@ -111,8 +107,6 @@ const maxAttempts = Math.max(
     }
   }
 
-  
-
   // Fallback (should be rare): return a unique puzzle even if it missed coverage goal
   const solution = makeRandomSolved(size, box);
   const targetClues = randInt(minClues, maxClues);
@@ -134,7 +128,10 @@ const maxAttempts = Math.max(
 function makeRandomSolved(size: Size, box: number): Grid {
   // Build a base Latin pattern then shuffle rows/cols/bands/stacks & digits
   const base: Grid = Array.from({ length: size }, (_, r) =>
-    Array.from({ length: size }, (_, c) => ((box * (r % box) + Math.floor(r / box) + c) % size) + 1)
+    Array.from(
+      { length: size },
+      (_, c) => ((box * (r % box) + Math.floor(r / box) + c) % size) + 1
+    )
   );
 
   let g = cloneGrid(base);
@@ -412,7 +409,13 @@ function findBestEmpty(
   return best;
 }
 
-function candidates(g: Grid, r: number, c: number, size: Size, box: number): number[] {
+function candidates(
+  g: Grid,
+  r: number,
+  c: number,
+  size: Size,
+  box: number
+): number[] {
   const used = new Set<number>();
   // row
   for (let j = 0; j < size; j++) used.add(g[r][j]);
@@ -430,7 +433,14 @@ function candidates(g: Grid, r: number, c: number, size: Size, box: number): num
   return cand;
 }
 
-function isSafe(g: Grid, r: number, c: number, v: number, size: Size, box: number): boolean {
+function isSafe(
+  g: Grid,
+  r: number,
+  c: number,
+  v: number,
+  size: Size,
+  box: number
+): boolean {
   // row
   for (let j = 0; j < size; j++) if (g[r][j] === v) return false;
   // col
@@ -478,7 +488,8 @@ function reorderBands(g: Grid, order: number[], box: number): Grid {
 function transpose(g: Grid): Grid {
   const size = g.length;
   const t: Grid = Array.from({ length: size }, () => Array(size).fill(0));
-  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) t[c][r] = g[r][c];
+  for (let r = 0; r < size; r++)
+    for (let c = 0; c < size; c++) t[c][r] = g[r][c];
   return t;
 }
 
@@ -524,6 +535,7 @@ function round2(x: number): number {
 
 function allCoords(size: number): Array<[number, number]> {
   const out: Array<[number, number]> = [];
-  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) out.push([r, c]);
+  for (let r = 0; r < size; r++)
+    for (let c = 0; c < size; c++) out.push([r, c]);
   return out;
 }
