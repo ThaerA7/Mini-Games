@@ -89,6 +89,7 @@ export default function GameBoard({
 
   return (
     <div
+    key={`${gridSize}-${patternKey}`}
       ref={containerRef}
       style={{
         width: 'min(92vw, 640px)',
@@ -109,8 +110,8 @@ export default function GameBoard({
         const wrongPick = isPicked && !isCellCorrect(i)
 
         // Flip only once the reveal is active; otherwise keep front up.
-        const flipped = isShowing && revealActive && isInPattern
-
+const flipped = isShowing && revealActive && isInPattern
+ const backVisible = flipped
         return (
           <div
             key={i}
@@ -160,12 +161,14 @@ export default function GameBoard({
                   inset: 0,
                   borderRadius: 10,
                   border: '1px solid rgba(255,255,255,0.08)',
-                  background: '#ffffff',
+                  background: backVisible ? '#ffffff' : 'transparent',
                   transform: 'rotateY(180deg) translateZ(0)',
                   backfaceVisibility: 'hidden',
                   WebkitBackfaceVisibility: 'hidden',
-                  boxShadow: '0 0 0 2px rgba(255,255,255,0.18) inset',
-                  visibility: revealActive ? 'visible' : 'hidden', // ⬅ key change
+                  boxShadow: backVisible ? '0 0 0 2px rgba(255,255,255,0.18) inset' : 'none',
+     visibility: backVisible ? 'visible' : 'hidden',
+     opacity: backVisible ? 1 : 0,              // belt & suspenders
+     transition: 'opacity 120ms linear',
                 }}
               />
             </div>
