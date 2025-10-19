@@ -4,36 +4,70 @@ import { pickRandomCells } from './grid'
 
 type Stats = { rounds: number; bestLevel: number }
 
-const MIN_REVEAL_MS = 400
-const START_REVEAL_MS = 1200
-
-const HEARTS_INITIAL = 3
-const MISTAKES_PER_HEART = 2 // lose 1 heart after every 2 mistakes
-
+// === Timing (fixed for all levels) ===
+const REVEAL_MS_FIXED = 1200
 const ADVANCE_MS = 380 // fast but smooth next-level hop
 
-const gridForLevel = (level: number) => Math.min(3 + (level - 1), 9) // 3x3..9x9
-const revealMsForLevel = (level: number) => Math.max(MIN_REVEAL_MS, START_REVEAL_MS - (level - 1) * 70)
-const patternCountFor = (level: number, gridSize: number) => {
-  const max = Math.floor(gridSize * gridSize * 0.6)
-  return Math.min(3 + (level - 1), max)
+// === Hearts ===
+const HEARTS_INITIAL = 3
+
+// === Grid & pattern rules ===
+const GRID_MIN = 3
+const GRID_MAX = 17
+const MAX_PATTERN_RATIO = 0.6 // cap white squares at 60%
+
+// First two grid sizes (3x3, 4x4) repeat 3 times; 5x5 and larger repeat 5 times
+const playsPerSizeForGrid = (g: number) => (g <= 4 ? 3 : 5)
+
+// Base white squares:
+// - 3x3 & 4x4 start at 3
+// - 5x5 and larger START AT 5 (and add +1 each completion within that size)
+const basePatternCountForGrid = (g: number) => {
+  // Ordinal mapping by grid order (1st=3x3):
+  // 1→3, 2→4, 3→5, 4→6, and from 5th onward base = ordinal+1
+  // Works for any grid size ≥ 3.
+  const ordinal = g - 2 // 3x3→1, 4x4→2, 5x5→3, 6x6→4, ...
+  if (ordinal === 1) return 3
+  if (ordinal === 2) return 4
+  if (ordinal === 3) return 5
+  if (ordinal === 4) return 6
+  return ordinal + 1
 }
 
+// Hearts rule:
+// - 3x3 & 4x4: 1 mistake => lose a heart
+// - 5x5 and larger: 3 mistakes => lose a heart
+const mistakesPerHeartForGrid = (g: number) => (g <= 4 ? 1 : 3)
+
+const clampPattern = (g: number, count: number) =>
+  Math.min(count, Math.floor(g * g * MAX_PATTERN_RATIO))
+
 export function useVisualMemoryGame() {
+  // Level increases after each win
   const [level, setLevel] = React.useState(1)
+
+  // Phase + timers
   const [phase, setPhase] = React.useState<Phase>('idle')
-  const [gridSize, setGridSize] = React.useState(gridForLevel(1))
-  const [revealMs, setRevealMs] = React.useState(revealMsForLevel(1))
-  const [pattern, setPattern] = React.useState<number[]>([])
-  const [selected, setSelected] = React.useState<Set<number>>(new Set())
-  const [stats, setStats] = React.useState<Stats>({ rounds: 0, bestLevel: 1 })
-
-  const [running, setRunning] = React.useState(false)
-  const [hearts, setHearts] = React.useState(HEARTS_INITIAL)
-  const [mistakes, setMistakes] = React.useState(0)
-
   const revealTimer = React.useRef<number | null>(null)
   const advanceTimer = React.useRef<number | null>(null)
+
+  // Current grid state
+  const [gridSize, setGridSize] = React.useState(GRID_MIN)
+  const [repeatAtSize, setRepeatAtSize] = React.useState(0) // 0..(playsPerSizeForGrid-1)
+  const [patternCount, setPatternCount] = React.useState(basePatternCountForGrid(GRID_MIN))
+  const [revealMs, setRevealMs] = React.useState(REVEAL_MS_FIXED)
+
+  // Pattern & selections
+  const [pattern, setPattern] = React.useState<number[]>([])
+  const [selected, setSelected] = React.useState<Set<number>>(new Set())
+
+  // Run stats
+  const [stats, setStats] = React.useState<Stats>({ rounds: 0, bestLevel: 1 })
+  const [running, setRunning] = React.useState(false)
+
+  // Hearts + mistake bucket (mistakes since last heart loss)
+  const [hearts, setHearts] = React.useState(HEARTS_INITIAL)
+  const [mistakes, setMistakes] = React.useState(0)
 
   const clearTimers = React.useCallback(() => {
     if (revealTimer.current) { window.clearTimeout(revealTimer.current); revealTimer.current = null }
@@ -41,42 +75,51 @@ export function useVisualMemoryGame() {
   }, [])
 
   const startLevel = React.useCallback(() => {
-    const g = gridForLevel(level)
-    const n = patternCountFor(level, g)
-    const ms = revealMsForLevel(level)
+    const g = gridSize
+    const effectiveCount = clampPattern(g, patternCount)
 
-    setGridSize(g)
-    setRevealMs(ms)
+    setRevealMs(REVEAL_MS_FIXED)
     setSelected(new Set())
-    setPattern(pickRandomCells(g * g, n))
+    setPattern(pickRandomCells(g * g, effectiveCount))
     setPhase('show')
 
     clearTimers()
-    revealTimer.current = window.setTimeout(() => setPhase('guess'), ms)
-  }, [level, clearTimers])
+    revealTimer.current = window.setTimeout(() => setPhase('guess'), REVEAL_MS_FIXED)
+  }, [gridSize, patternCount, clearTimers])
 
   const startRun = React.useCallback(() => {
     clearTimers()
     setHearts(HEARTS_INITIAL)
     setMistakes(0)
+
     setLevel(1)
     setRunning(true)
     setPhase('idle')
+
+    setGridSize(GRID_MIN)
+    setRepeatAtSize(0)
+    setPatternCount(basePatternCountForGrid(GRID_MIN))
+    setRevealMs(REVEAL_MS_FIXED)
   }, [clearTimers])
 
   const restartRun = React.useCallback(() => {
     clearTimers()
     setRunning(false)
+
     setHearts(HEARTS_INITIAL)
     setMistakes(0)
     setSelected(new Set())
     setPattern([])
+
     setLevel(1)
     setPhase('idle')
-    setGridSize(gridForLevel(1))
-    setRevealMs(revealMsForLevel(1))
+    setGridSize(GRID_MIN)
+    setRepeatAtSize(0)
+    setPatternCount(basePatternCountForGrid(GRID_MIN))
+    setRevealMs(REVEAL_MS_FIXED)
   }, [clearTimers])
 
+  // Auto-start the first level when a run begins, and each subsequent level when we switch back to idle
   React.useEffect(() => {
     if (running && phase === 'idle') {
       startLevel()
@@ -91,15 +134,23 @@ export function useVisualMemoryGame() {
       const next = new Set(prev); next.add(index)
 
       const correctSet = new Set(pattern)
-      if (!correctSet.has(index)) {
-        const newMistakes = mistakes + 1
-        const loseHeart = newMistakes % MISTAKES_PER_HEART === 0
-        const projectedHearts = loseHeart ? Math.max(0, hearts - 1) : hearts
+      const isWrong = !correctSet.has(index)
 
-        setMistakes(newMistakes)
-        if (loseHeart) setHearts(projectedHearts)
+      if (isWrong) {
+        // Mistake handling w/ dynamic threshold based on grid size
+        const threshold = mistakesPerHeartForGrid(gridSize)
+        let bucket = mistakes + 1
+        let heartsLeft = hearts
 
-        if (projectedHearts <= 0) {
+        if (bucket >= threshold) {
+          bucket -= threshold
+          heartsLeft = Math.max(0, heartsLeft - 1)
+        }
+
+        setMistakes(bucket)
+        if (heartsLeft !== hearts) setHearts(heartsLeft)
+
+        if (heartsLeft <= 0) {
           setPhase('lost')
           setRunning(false)
           setStats(s => ({ rounds: s.rounds + 1, bestLevel: Math.max(s.bestLevel, level) }))
@@ -107,21 +158,50 @@ export function useVisualMemoryGame() {
         }
       }
 
+      // Check win
       const allFound = Array.from(correctSet).every(i => next.has(i))
       if (allFound) {
         setPhase('won')
         setStats(s => ({ ...s, bestLevel: Math.max(s.bestLevel, level) }))
 
+        // Progression per rules:
+        // - stay on same grid size for N plays (N=3 for <=4x4, else N=5)
+        // - after each success within same size: patternCount += 1
+        // - when advancing to next size: reset patternCount to basePatternCountForGrid(nextSize)
+        const currentSize = gridSize
+        const currentRepeat = repeatAtSize
+        const currentCount = patternCount
+
+        const totalPlaysForSize = playsPerSizeForGrid(currentSize)
+
+        let nextSize = currentSize
+        let nextRepeat = currentRepeat
+        let nextCount = currentCount
+
+        if (currentRepeat < totalPlaysForSize - 1) {
+          // Repeat same size: add +1 white square, capped by ratio
+          nextRepeat = currentRepeat + 1
+          nextCount = clampPattern(currentSize, currentCount + 1)
+        } else {
+          // Advance size: reset repeat counter and set base count for the NEW size
+          nextSize = Math.min(currentSize + 1, GRID_MAX)
+          nextRepeat = 0
+          nextCount = basePatternCountForGrid(nextSize)
+        }
+
         clearTimers()
         advanceTimer.current = window.setTimeout(() => {
           setLevel(l => l + 1)
+          setGridSize(nextSize)
+          setRepeatAtSize(nextRepeat)
+          setPatternCount(nextCount)
           setPhase('idle')
         }, ADVANCE_MS)
       }
 
       return next
     })
-  }, [phase, pattern, level, hearts, mistakes, clearTimers])
+  }, [phase, pattern, gridSize, repeatAtSize, patternCount, hearts, mistakes, level, clearTimers])
 
   const isCellCorrect = React.useCallback((index: number) => pattern.includes(index), [pattern])
 
