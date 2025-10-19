@@ -224,7 +224,12 @@ export default function VisualMemoryPage() {
               >
                 {showStartOverlay ? (
                   // ✅ Only the Start button (no surrounding container)
-                  <Button onClick={startRun}>Start</Button>
+                  <Button
+                    onClick={startRun}
+                    style={{ height: 56, padding: "0 24px", fontSize: 22 }}
+                  >
+                    Start
+                  </Button>
                 ) : (
                   // Lost overlay stays as-is (keeps its container)
                   <div
