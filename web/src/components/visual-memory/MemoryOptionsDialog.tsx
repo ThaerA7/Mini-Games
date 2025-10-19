@@ -162,13 +162,15 @@ export default function MemoryOptionsDialog({ open, onOpenChange }: Props) {
         </Button>
 
         <Button
-          leading={<IconBolt />}
-          disabled
-          aria-label="Sequence Memory (coming soon)"
-          title="Coming soon"
-        >
-          Sequence Memory
-        </Button>
+  leading={<IconBolt />}
+  onClick={() => {
+    onOpenChange(false);
+    navigate("/sequence");
+  }}
+  aria-label="Start Sequence Memory"
+>
+  Sequence Memory
+</Button>
 
         <Button
           leading={<IconBanana />}

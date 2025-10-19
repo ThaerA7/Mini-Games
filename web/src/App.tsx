@@ -1,10 +1,10 @@
-import { Routes, Route } from 'react-router-dom'
-import HomePage from './pages/HomePage'
-import SudokuPage from './pages/SudokuPage'
-import KillerSudokuPage from './pages/KillerSudokuPage'
-
+import { Routes, Route } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import SudokuPage from "./pages/SudokuPage";
+import KillerSudokuPage from "./pages/KillerSudokuPage";
+import VisualMemoryPage from "./pages/VisualMemoryPage";
 // ⬇️ NEW
-import VisualMemoryPage from './pages/VisualMemoryPage'
+import SequenceMemoryPage from "./pages/SequenceMemoryPage";
 
 export default function App() {
   return (
@@ -12,8 +12,9 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/sudoku" element={<SudokuPage />} />
       <Route path="/killer" element={<KillerSudokuPage />} />
-      {/* ⬇️ NEW */}
       <Route path="/memory" element={<VisualMemoryPage />} />
+      {/* ⬇️ NEW */}
+      <Route path="/sequence" element={<SequenceMemoryPage />} />
     </Routes>
-  )
+  );
 }
