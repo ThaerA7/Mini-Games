@@ -6,7 +6,7 @@ export function createPhaserGame(parent: string) {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
-    backgroundColor: '#0b1020', // match your page background so it doesn't look like a box
+    backgroundColor: '#0b1020', 
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,

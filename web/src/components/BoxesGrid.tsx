@@ -1,5 +1,6 @@
 // src/components/BoxesGrid.tsx
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import SudokuOptionsDialog from './sudoku/SudokuOptionsDialog'
 import SudokuImg from '../assets/Sudoku.png'
 
@@ -9,6 +10,7 @@ export default function BoxesGrid() {
   const boxes = Array.from({ length: 15 })
   const [pressedIndex, setPressedIndex] = React.useState<number | null>(null)
   const [sudokuOpen, setSudokuOpen] = React.useState(false)
+  const navigate = useNavigate()
 
   const baseBoxStyle: React.CSSProperties = {
     aspectRatio: '1 / 1',
@@ -20,6 +22,7 @@ export default function BoxesGrid() {
     cursor: 'pointer',
     willChange: 'transform, filter',
     touchAction: 'manipulation',
+    overflow: 'hidden',
   }
 
   const getBoxStyle = (isPressed: boolean): React.CSSProperties => ({
@@ -32,7 +35,7 @@ export default function BoxesGrid() {
   const handlePointerDown = (i: number) => setPressedIndex(i)
   const clearPress = () => setPressedIndex(null)
 
-  // Wire these to your game logic / router / Phaser
+  // Hook these up to your Sudoku logic/router as needed
   const startNew = (difficulty: Difficulty) => {
     setSudokuOpen(false)
     console.log('Start new Sudoku:', difficulty)
@@ -45,34 +48,92 @@ export default function BoxesGrid() {
   return (
     <section style={{ width: '100%', padding: 20 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20 }}>
-        {boxes.map((_, i) =>
-          i === 0 ? (
-            <div
-              key="sudoku"
-              style={{ ...getBoxStyle(pressedIndex === i), position: 'relative', overflow: 'hidden' }}
-              onPointerDown={() => handlePointerDown(i)}
-              onPointerUp={clearPress}
-              onPointerLeave={clearPress}
-              onPointerCancel={clearPress}
-              onClick={() => setSudokuOpen(true)}
-              aria-label="Open Sudoku options"
-            >
-              <img
-                src={SudokuImg}
-                alt="Sudoku"
+        {boxes.map((_, i) => {
+          if (i === 0) {
+            // Sudoku tile with image
+            return (
+              <div
+                key="sudoku"
+                style={{ ...getBoxStyle(pressedIndex === i), position: 'relative' }}
+                onPointerDown={() => handlePointerDown(i)}
+                onPointerUp={clearPress}
+                onPointerLeave={clearPress}
+                onPointerCancel={clearPress}
+                onClick={() => setSudokuOpen(true)}
+                aria-label="Open Sudoku options"
+              >
+                <img
+                  src={SudokuImg}
+                  alt="Sudoku"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background:
+                      'linear-gradient(180deg, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.45) 100%)',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 10,
+                    left: 12,
+                    right: 12,
+                    fontWeight: 700,
+                    letterSpacing: 0.3,
+                    textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+                  }}
+                >
+                  
+                </div>
+              </div>
+            )
+          }
+
+          if (i === 1) {
+            // Visual Memory launcher tile
+            return (
+              <div
+                key="visual-memory"
                 style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                  userSelect: 'none',
-                  pointerEvents: 'none',
+                  ...getBoxStyle(pressedIndex === i),
+                  display: 'grid',
+                  placeItems: 'center',
                 }}
-              />
-            </div>
-          ) : (
+                onPointerDown={() => handlePointerDown(i)}
+                onPointerUp={clearPress}
+                onPointerLeave={clearPress}
+                onPointerCancel={clearPress}
+                onClick={() => navigate('/memory')}
+                aria-label="Open Visual Memory Game"
+              >
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '0 8px',
+                    lineHeight: 1.15,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>Visual</div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>Memory</div>
+                </div>
+              </div>
+            )
+          }
+
+          // Placeholder / future games tiles
+          return (
             <div
               key={i}
               style={getBoxStyle(pressedIndex === i)}
@@ -80,9 +141,10 @@ export default function BoxesGrid() {
               onPointerUp={clearPress}
               onPointerLeave={clearPress}
               onPointerCancel={clearPress}
+              aria-label={`empty-tile-${i}`}
             />
           )
-        )}
+        })}
       </div>
 
       <SudokuOptionsDialog
