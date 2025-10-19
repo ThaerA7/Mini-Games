@@ -1,3 +1,4 @@
+import React from 'react'
 import TopBar from '../components/TopBar'
 import GameBoard from '../components/visual-memory/GameBoard'
 import { useVisualMemoryGame } from '../components/visual-memory/useVisualMemoryGame'
@@ -18,27 +19,70 @@ export default function VisualMemoryPage() {
     isCellCorrect,
   } = useVisualMemoryGame()
 
+  // Inject Poppins once
+  React.useEffect(() => {
+    const id = 'poppins-font-link'
+    if (!document.getElementById(id)) {
+      const link = document.createElement('link')
+      link.id = id
+      link.rel = 'stylesheet'
+      link.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap'
+      document.head.appendChild(link)
+    }
+  }, [])
+
+  // Inline minimal CSS for buttons + board transitions + card flip states
+  // (If you keep a global stylesheet, move these styles there.)
+  React.useEffect(() => {
+    const id = 'vm-style'
+    if (document.getElementById(id)) return
+    const style = document.createElement('style')
+    style.id = id
+    style.textContent = `
+      :root { --ui-font: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; }
+      .vm-btn {
+        font-family: var(--ui-font);
+        height: 44px;
+        padding: 0 18px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08));
+        color: #e5e7eb;
+        font-weight: 700;
+        letter-spacing: .2px;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        box-shadow:
+          0 6px 18px rgba(0,0,0,.25),
+          inset 0 0 0 1px rgba(255,255,255,.08);
+        transition: transform .15s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+      }
+      .vm-btn:hover { transform: translateY(-1px) scale(1.01); box-shadow: 0 10px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.18); }
+      .vm-btn:active { transform: translateY(0) scale(.985); }
+      .vm-btn:disabled { opacity: .65; cursor: not-allowed; }
+
+      /* Board transition on win (smooth + fast) */
+      .vm-board { transition: transform .35s ease, opacity .35s ease, filter .16s ease; will-change: transform, opacity; }
+      .vm-board--won { transform: scale(.96); opacity: 0; }
+
+      /* Card flip helpers (class hooks used inside GameBoard) */
+      .vm-card.is-flipped { transform: rotateY(180deg) !important; }
+      .vm-card.is-picked-correct .front {
+        background: rgba(255,255,255,0.9) !important;
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.22) inset !important;
+      }
+      .vm-card.is-picked-wrong .front {
+        background: rgba(239,68,68,0.85) !important;
+        box-shadow: 0 0 0 2px rgba(239,68,68,0.60) inset !important;
+      }
+    `
+    document.head.appendChild(style)
+  }, [])
+
   const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, ...rest }) => (
-    <button
-      {...rest}
-      style={{
-        height: 44,
-        padding: '0 16px',
-        borderRadius: 12,
-        border: '1px solid rgba(255,255,255,0.14)',
-        background: 'rgba(255,255,255,0.10)',
-        color: '#e5e7eb',
-        fontWeight: 700,
-        letterSpacing: 0.2,
-        cursor: 'pointer',
-        backdropFilter: 'blur(2px)',
-      }}
-    >
-      {children}
-    </button>
+    <button {...rest} className="vm-btn">{children}</button>
   )
 
-  // hearts render (3 fixed slots)
   const renderHearts = (count: number) => {
     const total = 3
     return (
@@ -65,11 +109,11 @@ export default function VisualMemoryPage() {
   const showLostOverlay = phase === 'lost'
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#0b1020', color: '#e5e7eb', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100dvh', background: '#0b1020', color: '#e5e7eb', display: 'flex', flexDirection: 'column', fontFamily: 'var(--ui-font)' }}>
       <TopBar />
       <main style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 16 }}>
         <section style={{ width: 'min(960px, 100%)', display: 'grid', gap: 16 }}>
-          {/* HEADER BAR (within grid width) */}
+          {/* HEADER BAR */}
           <div style={{ width: 'min(92vw, 640px)', margin: '0 auto' }}>
             <div
               style={{
@@ -87,8 +131,11 @@ export default function VisualMemoryPage() {
             </div>
           </div>
 
-          {/* BOARD FRAME (overlay stays within board width) */}
-          <div style={{ width: 'min(92vw, 640px)', margin: '0 auto', position: 'relative' }}>
+          {/* BOARD FRAME + quick transition on win */}
+          <div
+            className={`vm-board ${phase === 'won' ? 'vm-board--won' : ''}`}
+            style={{ width: 'min(92vw, 640px)', margin: '0 auto', position: 'relative' }}
+          >
             <GameBoard
               gridSize={gridSize}
               phase={phase}

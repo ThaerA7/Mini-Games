@@ -10,10 +10,11 @@ const START_REVEAL_MS = 1200
 const HEARTS_INITIAL = 3
 const MISTAKES_PER_HEART = 2 // lose 1 heart after every 2 mistakes
 
+const ADVANCE_MS = 380 // fast but smooth next-level hop
+
 const gridForLevel = (level: number) => Math.min(3 + (level - 1), 9) // 3x3..9x9
 const revealMsForLevel = (level: number) => Math.max(MIN_REVEAL_MS, START_REVEAL_MS - (level - 1) * 70)
 const patternCountFor = (level: number, gridSize: number) => {
-  // Start with 3, then grow roughly one per level, capped to 60% of grid
   const max = Math.floor(gridSize * gridSize * 0.6)
   return Math.min(3 + (level - 1), max)
 }
@@ -39,7 +40,6 @@ export function useVisualMemoryGame() {
     if (advanceTimer.current) { window.clearTimeout(advanceTimer.current); advanceTimer.current = null }
   }, [])
 
-  // kick off a single level (generate pattern, show, then switch to guessing)
   const startLevel = React.useCallback(() => {
     const g = gridForLevel(level)
     const n = patternCountFor(level, g)
@@ -51,19 +51,17 @@ export function useVisualMemoryGame() {
     setPattern(pickRandomCells(g * g, n))
     setPhase('show')
 
-    // after reveal, hide and let user guess
     clearTimers()
     revealTimer.current = window.setTimeout(() => setPhase('guess'), ms)
   }, [level, clearTimers])
 
-  // global "start run" — user clicks Start once; auto-advance until out of hearts
   const startRun = React.useCallback(() => {
     clearTimers()
     setHearts(HEARTS_INITIAL)
     setMistakes(0)
     setLevel(1)
     setRunning(true)
-    setPhase('idle') // auto-starter effect will call startLevel
+    setPhase('idle')
   }, [clearTimers])
 
   const restartRun = React.useCallback(() => {
@@ -79,14 +77,12 @@ export function useVisualMemoryGame() {
     setRevealMs(revealMsForLevel(1))
   }, [clearTimers])
 
-  // auto-start any idle level while running
   React.useEffect(() => {
     if (running && phase === 'idle') {
       startLevel()
     }
   }, [running, phase, startLevel])
 
-  // evaluate cell clicks during guessing
   const handleCellClick = React.useCallback((index: number) => {
     if (phase !== 'guess') return
 
@@ -95,7 +91,6 @@ export function useVisualMemoryGame() {
       const next = new Set(prev); next.add(index)
 
       const correctSet = new Set(pattern)
-      // wrong pick -> count mistake + maybe lose heart; only end run when hearts reach 0
       if (!correctSet.has(index)) {
         const newMistakes = mistakes + 1
         const loseHeart = newMistakes % MISTAKES_PER_HEART === 0
@@ -112,18 +107,16 @@ export function useVisualMemoryGame() {
         }
       }
 
-      // all found -> win this level and auto-advance
       const allFound = Array.from(correctSet).every(i => next.has(i))
       if (allFound) {
         setPhase('won')
         setStats(s => ({ ...s, bestLevel: Math.max(s.bestLevel, level) }))
 
-        // schedule next level
         clearTimers()
         advanceTimer.current = window.setTimeout(() => {
           setLevel(l => l + 1)
-          setPhase('idle') // auto-starter effect will run startLevel()
-        }, 550)
+          setPhase('idle')
+        }, ADVANCE_MS)
       }
 
       return next
@@ -132,7 +125,6 @@ export function useVisualMemoryGame() {
 
   const isCellCorrect = React.useCallback((index: number) => pattern.includes(index), [pattern])
 
-  // clean timers on unmount
   React.useEffect(() => () => clearTimers(), [clearTimers])
 
   return {
