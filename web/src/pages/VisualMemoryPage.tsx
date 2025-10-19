@@ -174,27 +174,72 @@ export default function VisualMemoryPage() {
             </div>
           </div>
 
-          {/* BOARD WRAPPER (no blur here anymore) */}
+          {/* BOARD SHELL: width + centering only */}
           <div
-            className={`vm-board ${phase === "won" ? "vm-board--won" : ""}`}
             style={{
               width: "min(92vw, 640px)",
               margin: "0 auto",
-              position: "relative",
-              // ✂️ removed: filter: isBlurred ? 'blur(6px)' : 'none'
             }}
           >
-            <GameBoard
-              gridSize={gridSize}
-              phase={phase}
-              highlightCells={pattern}
-              selected={selected}
-              onCellClick={handleCellClick}
-              isCellCorrect={isCellCorrect}
-              isBlurred={isBlurred} // ← grid blurs, overlay stays sharp
-            />
+            {/* ANIMATES ONLY THE GRID (and the overlay that sits on top of it) */}
+            <div
+              className={`vm-board ${phase === "won" ? "vm-board--won" : ""}`}
+              style={{
+                position: "relative",
+              }}
+            >
+              <GameBoard
+                gridSize={gridSize}
+                phase={phase}
+                highlightCells={pattern}
+                selected={selected}
+                onCellClick={handleCellClick}
+                isCellCorrect={isCellCorrect}
+                isBlurred={isBlurred} // grid blurs, overlay stays sharp
+              />
 
-            {/* Full-width restart that matches grid EXACTLY + gets blurred */}
+              {(showStartOverlay || showLostOverlay) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    pointerEvents: "auto",
+                  }}
+                >
+                  {showStartOverlay ? (
+                    <Button
+                      onClick={startRun}
+                      style={{ height: 56, padding: "0 24px", fontSize: 22 }}
+                    >
+                      Start
+                    </Button>
+                  ) : (
+                    <div
+                      style={{
+                        pointerEvents: "auto",
+                        display: "grid",
+                        gap: 10,
+                        placeItems: "center",
+                        background: "rgba(6, 8, 18, 0.55)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 14,
+                        padding: 16,
+                        backdropFilter: "blur(6px)",
+                      }}
+                    >
+                      <div style={{ fontSize: 14, opacity: 0.9 }}>
+                        Out of lives!
+                      </div>
+                      <Button onClick={restartRun}>Restart</Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* This section no longer lives inside the animated container */}
             <div
               style={{
                 marginTop: 10,
@@ -202,7 +247,6 @@ export default function VisualMemoryPage() {
               }}
             >
               <hr className="vm-divider" />
-
               <Button
                 className="vm-btn--flat vm-btn--full"
                 onClick={restartRun}
@@ -211,48 +255,6 @@ export default function VisualMemoryPage() {
                 Restart
               </Button>
             </div>
-
-            {(showStartOverlay || showLostOverlay) && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "grid",
-                  placeItems: "center",
-                  pointerEvents: "auto",
-                }}
-              >
-                {showStartOverlay ? (
-                  // ✅ Only the Start button (no surrounding container)
-                  <Button
-                    onClick={startRun}
-                    style={{ height: 56, padding: "0 24px", fontSize: 22 }}
-                  >
-                    Start
-                  </Button>
-                ) : (
-                  // Lost overlay stays as-is (keeps its container)
-                  <div
-                    style={{
-                      pointerEvents: "auto",
-                      display: "grid",
-                      gap: 10,
-                      placeItems: "center",
-                      background: "rgba(6, 8, 18, 0.55)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 14,
-                      padding: 16,
-                      backdropFilter: "blur(6px)",
-                    }}
-                  >
-                    <div style={{ fontSize: 14, opacity: 0.9 }}>
-                      Out of lives!
-                    </div>
-                    <Button onClick={restartRun}>Restart</Button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </section>
       </main>

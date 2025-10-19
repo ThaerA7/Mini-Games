@@ -1,3 +1,4 @@
+// src/components/sequence-memory/SequenceGameBoard.tsx
 import React from "react";
 import type { SeqPhase } from "./useSequenceMemoryGame";
 
@@ -9,6 +10,7 @@ type Props = {
   inputPos: number;           // how many correct clicks so far
   wrongAt: number | null;     // last wrong cell clicked (for a brief red flash)
   onCellClick: (idx: number) => void;
+  isBlurred?: boolean;
 };
 
 export default function SequenceGameBoard({
@@ -19,6 +21,7 @@ export default function SequenceGameBoard({
   inputPos,
   wrongAt,
   onCellClick,
+  isBlurred = false,
 }: Props) {
   const count = gridSize * gridSize;
   const containerStyle: React.CSSProperties = {
@@ -28,6 +31,8 @@ export default function SequenceGameBoard({
     gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
     gap: 10,
     touchAction: "manipulation",
+    filter: isBlurred ? "blur(6px)" : "none",
+    transition: "filter 160ms ease",
   };
 
   const baseCell: React.CSSProperties = {

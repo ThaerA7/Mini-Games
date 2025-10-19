@@ -1,13 +1,18 @@
+// src/components/sequence-memory/useSequenceMemoryGame.ts
 import React from "react";
 
 export type SeqPhase = "ready" | "show" | "input" | "won" | "lost";
 
-const GRID_SIZE = 4;              // 4x4 grid
-const SEQ_LEN = 3;                // flash 3 cells
+const GRID_SIZE = 4;              // fixed 4x4 grid
 const MISTAKES_ALLOWED = 2;       // two strikes
 
 const FLASH_ON_MS = 520;          // each flash duration
 const FLASH_GAP_MS = 230;         // gap between flashes
+
+const STORAGE_KEYS = {
+  bestLevel: "seqmem.bestLevel",
+  bestScore: "seqmem.bestScore",
+} as const;
 
 function pickUniqueSequence(total: number, length: number): number[] {
   const pool = Array.from({ length: total }, (_, i) => i);
@@ -19,12 +24,23 @@ function pickUniqueSequence(total: number, length: number): number[] {
 }
 
 export function useSequenceMemoryGame() {
+  // GAME STATE
   const [phase, setPhase] = React.useState<SeqPhase>("ready");
+  const [seqLen, setSeqLen] = React.useState<number>(3); // starts at 3, then 4, 5, ...
   const [sequence, setSequence] = React.useState<number[]>([]);
   const [flashIndex, setFlashIndex] = React.useState<number | null>(null);
   const [inputPos, setInputPos] = React.useState(0);
   const [mistakes, setMistakes] = React.useState(0);
   const [wrongAt, setWrongAt] = React.useState<number | null>(null);
+
+  // SCORE
+  const [score, setScore] = React.useState(0);
+  const [bestLevel, setBestLevel] = React.useState<number>(() =>
+    Number(localStorage.getItem(STORAGE_KEYS.bestLevel) || 0)
+  );
+  const [bestScore, setBestScore] = React.useState<number>(() =>
+    Number(localStorage.getItem(STORAGE_KEYS.bestScore) || 0)
+  );
 
   const timers = React.useRef<number[]>([]);
   const clearTimers = React.useCallback(() => {
@@ -32,46 +48,53 @@ export function useSequenceMemoryGame() {
     timers.current = [];
   }, []);
 
-  const start = React.useCallback(() => {
-    clearTimers();
-    const seq = pickUniqueSequence(GRID_SIZE * GRID_SIZE, SEQ_LEN);
+  const scheduleShow = React.useCallback((len: number) => {
+    const seq = pickUniqueSequence(GRID_SIZE * GRID_SIZE, len);
     setSequence(seq);
-    setPhase("show");
     setFlashIndex(null);
     setInputPos(0);
     setMistakes(0);
     setWrongAt(null);
+    setPhase("show");
 
-    // Schedule the flashing sequence
+    // schedule flashes
     let when = 400; // small lead-in
     seq.forEach((_, i) => {
-      // turn "on"
-      timers.current.push(
-        window.setTimeout(() => setFlashIndex(i), when)
-      );
+      timers.current.push(window.setTimeout(() => setFlashIndex(i), when));
       when += FLASH_ON_MS;
-
-      // turn "off"
-      timers.current.push(
-        window.setTimeout(() => setFlashIndex(null), when)
-      );
+      timers.current.push(window.setTimeout(() => setFlashIndex(null), when));
       when += FLASH_GAP_MS;
     });
+    timers.current.push(window.setTimeout(() => setPhase("input"), when));
+  }, []);
 
-    // After last gap, move to input phase
-    timers.current.push(
-      window.setTimeout(() => setPhase("input"), when)
-    );
-  }, [clearTimers]);
+  const start = React.useCallback(() => {
+    clearTimers();
+    setScore(0);
+    setSeqLen(3);
+    scheduleShow(3);
+  }, [clearTimers, scheduleShow]);
+
+  const nextLevel = React.useCallback(() => {
+    clearTimers();
+    setScore((s) => s); // no change here; score was granted on win
+    setSeqLen((prev) => {
+      const next = prev + 1;
+      scheduleShow(next);
+      return next;
+    });
+  }, [clearTimers, scheduleShow]);
 
   const restart = React.useCallback(() => {
+    clearTimers();
     setPhase("ready");
     setSequence([]);
     setFlashIndex(null);
     setInputPos(0);
     setMistakes(0);
     setWrongAt(null);
-    clearTimers();
+    setScore(0);
+    setSeqLen(3);
   }, [clearTimers]);
 
   const handleCellClick = React.useCallback(
@@ -82,6 +105,19 @@ export function useSequenceMemoryGame() {
         const next = inputPos + 1;
         setInputPos(next);
         if (next >= sequence.length) {
+          // WON this level
+          setScore((s) => {
+            const ns = s + seqLen; // 1 point per correct pick
+            if (ns > bestScore) {
+              localStorage.setItem(STORAGE_KEYS.bestScore, String(ns));
+              setBestScore(ns);
+            }
+            return ns;
+          });
+          if (seqLen > bestLevel) {
+            localStorage.setItem(STORAGE_KEYS.bestLevel, String(seqLen));
+            setBestLevel(seqLen);
+          }
           setPhase("won");
         }
       } else {
@@ -95,7 +131,7 @@ export function useSequenceMemoryGame() {
         }
       }
     },
-    [phase, inputPos, sequence, mistakes]
+    [phase, inputPos, sequence, mistakes, seqLen, bestLevel, bestScore]
   );
 
   React.useEffect(() => () => clearTimers(), [clearTimers]);
@@ -103,8 +139,6 @@ export function useSequenceMemoryGame() {
   return {
     // constants
     GRID_SIZE,
-    SEQ_LEN,
-    MISTAKES_ALLOWED,
 
     // state
     phase,
@@ -113,10 +147,17 @@ export function useSequenceMemoryGame() {
     inputPos,       // how many correct steps entered
     mistakes,
     wrongAt,
+    seqLen,
+
+    // scores
+    score,
+    bestLevel,
+    bestScore,
 
     // actions
     start,
+    nextLevel,
     restart,
     handleCellClick,
-  };
+  } as const;
 }
