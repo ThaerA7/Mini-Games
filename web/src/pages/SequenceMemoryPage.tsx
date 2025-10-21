@@ -14,11 +14,12 @@ export default function SequenceMemoryPage() {
     wrongAt,
     start,
     restart,
-    nextLevel,
     bestLevel,
     bestScore,
     score,
     seqLen,
+    mistakes,
+    countdown,
     handleCellClick,
   } = useSequenceMemoryGame();
 
@@ -53,6 +54,21 @@ export default function SequenceMemoryPage() {
         height: 1px; margin: 12px 0 10px; border: none;
         background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.18), rgba(255,255,255,0));
       }
+      .countdown-bubble {
+        font-family: var(--ui-font);
+        font-weight: 900;
+        font-size: clamp(42px, 8vw, 84px);
+        line-height: 1;
+        letter-spacing: .5px;
+        color: rgba(255,255,255,0.98);
+        padding: 10px 18px;
+        border-radius: 16px;
+        background: rgba(2,6,23,0.75);
+        border: 1px solid rgba(255,255,255,0.16);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06);
+        transform: scale(1);
+        transition: transform .24s ease;
+      }
     `;
     document.head.appendChild(style);
   }, []);
@@ -72,16 +88,25 @@ export default function SequenceMemoryPage() {
     </span>
   );
 
-  // header center button label/handler
-  const headerBtn = React.useMemo(() => {
-    if (phase === "ready") return { label: "Start", onClick: start, disabled: false };
-    if (phase === "won") return { label: "Next", onClick: nextLevel, disabled: false };
-    // during show/input/lost: disable
-    if (phase === "lost") return { label: "Start", onClick: start, disabled: false };
-    return { label: "…", onClick: start, disabled: true };
-  }, [phase, start, nextLevel]);
+  const renderHearts = (mistakes: number) => {
+    const total = 3;
+    const filled = Math.max(0, total - mistakes);
+    return (
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }} aria-label="lives">
+        {Array.from({ length: total }).map((_, i) => (
+          <span
+            key={i}
+            style={{ fontSize: 18, lineHeight: 1, filter: "drop-shadow(0 0 4px rgba(255,255,255,0.25))", opacity: 0.95 }}
+            aria-hidden
+          >
+            {i < filled ? "❤" : "♡"}
+          </span>
+        ))}
+      </div>
+    );
+  };
 
-  const isBlurred = phase === "lost";
+  const isBlurred = phase === "ready" || phase === "countdown" || phase === "lost";
 
   return (
     <div
@@ -97,7 +122,7 @@ export default function SequenceMemoryPage() {
       <TopBar />
       <main style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}>
         <section style={{ width: "min(92vw, 720px)", display: "grid", gap: 16 }}>
-          {/* TOP BAR: best level • Start/Next • best score */}
+          {/* TOP BAR: Level • Hearts • Best Level */}
           <div
             style={{
               width: "min(92vw, 640px)",
@@ -108,17 +133,9 @@ export default function SequenceMemoryPage() {
               fontSize: 14,
             }}
           >
-            <div style={{ justifySelf: "start", fontWeight: 900 }}>
-              Best Level: {bestLevel}
-            </div>
-            <div style={{ justifySelf: "center" }}>
-              <button className="sm-btn" onClick={headerBtn.onClick} disabled={headerBtn.disabled}>
-                {headerBtn.label}
-              </button>
-            </div>
-            <div style={{ justifySelf: "end", fontWeight: 900 }}>
-              Best Score: {bestScore}
-            </div>
+            <div style={{ justifySelf: "start", fontWeight: 900 }}>Level: {seqLen}</div>
+            <div style={{ justifySelf: "center" }}>{renderHearts(mistakes)}</div>
+            <div style={{ justifySelf: "end", fontWeight: 900 }}>Best Level: {bestLevel}</div>
           </div>
 
           {/* BOARD WRAPPER */}
@@ -131,7 +148,7 @@ export default function SequenceMemoryPage() {
               inputPos={inputPos}
               wrongAt={wrongAt}
               onCellClick={handleCellClick}
-              isBlurred={phase === "lost"}
+              isBlurred={isBlurred}
             />
 
             {/* BOTTOM divider + full-width Restart */}
@@ -141,6 +158,39 @@ export default function SequenceMemoryPage() {
                 Restart
               </button>
             </div>
+
+            {/* OVERLAYS */}
+            {phase === "ready" && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  pointerEvents: "auto",
+                }}
+              >
+                <button className="sm-btn" onClick={start} aria-label="Start">
+                  Start
+                </button>
+              </div>
+            )}
+
+            {phase === "countdown" && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                <div className="countdown-bubble" aria-live="polite" role="status">
+                  {countdown}
+                </div>
+              </div>
+            )}
 
             {/* LOST OVERLAY WITH STATS */}
             {phase === "lost" && (

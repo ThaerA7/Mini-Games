@@ -5,7 +5,7 @@ import type { SeqPhase } from "./useSequenceMemoryGame";
 type Props = {
   gridSize: number;           // 4
   sequence: number[];         // e.g. [5, 2, 11]
-  phase: SeqPhase;            // "show" | "input" | ...
+  phase: SeqPhase;            // "show" | "input" | "countdown" | ...
   flashIndex: number | null;  // which index in sequence is glowing during "show"
   inputPos: number;           // how many correct clicks so far
   wrongAt: number | null;     // last wrong cell clicked (for a brief red flash)
