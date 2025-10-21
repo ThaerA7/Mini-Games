@@ -42,6 +42,9 @@ export function useSequenceMemoryGame() {
     Number(localStorage.getItem(STORAGE_KEYS.bestScore) || 0)
   );
 
+  // RUN TIMER (total seconds since Start; resets on Start/Restart)
+  const [seconds, setSeconds] = React.useState(0);
+
   // countdown seconds when auto-advancing
   const [countdown, setCountdown] = React.useState(0);
 
@@ -51,6 +54,7 @@ export function useSequenceMemoryGame() {
     timers.current = [];
   }, []);
 
+  // main game loop for showing flashes
   const scheduleShow = React.useCallback((len: number) => {
     const seq = pickUniqueSequence(GRID_SIZE * GRID_SIZE, len);
     setSequence(seq);
@@ -77,6 +81,7 @@ export function useSequenceMemoryGame() {
     setSeqLen(3);
     setMistakes(0); // reset hearts on a fresh run
     setCountdown(0);
+    setSeconds(0);  // reset timer at the start of a run
     scheduleShow(3);
   }, [clearTimers, scheduleShow]);
 
@@ -100,6 +105,7 @@ export function useSequenceMemoryGame() {
     setScore(0);
     setSeqLen(3);
     setCountdown(0);
+    setSeconds(0);
   }, [clearTimers]);
 
   const beginAutoAdvance = React.useCallback(() => {
@@ -153,6 +159,13 @@ export function useSequenceMemoryGame() {
     [phase, inputPos, sequence, mistakes, seqLen, bestLevel, bestScore, beginAutoAdvance]
   );
 
+  // Run timer: tick when the game is active (not in ready or lost)
+  React.useEffect(() => {
+    if (phase === "ready" || phase === "lost") return;
+    const id = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [phase]);
+
   React.useEffect(() => () => clearTimers(), [clearTimers]);
 
   return {
@@ -168,6 +181,7 @@ export function useSequenceMemoryGame() {
     wrongAt,
     seqLen,
     countdown,
+    seconds,
 
     // scores
     score,
@@ -181,3 +195,6 @@ export function useSequenceMemoryGame() {
     handleCellClick,
   } as const;
 }
+
+
+
