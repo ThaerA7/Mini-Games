@@ -15,13 +15,19 @@ export default function SequenceMemoryPage() {
     start,
     restart,
     bestLevel,
-    bestScore,
-    score,
+
     seqLen,
     mistakes,
     countdown,
     handleCellClick,
+    avgMsPerPick,
   } = useSequenceMemoryGame();
+  const formatSpeed = (ms: number | null) =>
+    ms == null
+      ? "—"
+      : ms >= 1000
+        ? `${(ms / 1000).toFixed(2)}s / pick`
+        : `${Math.round(ms)}ms / pick`;
 
   // inject minimal styles once
   React.useEffect(() => {
@@ -73,30 +79,23 @@ export default function SequenceMemoryPage() {
     document.head.appendChild(style);
   }, []);
 
-  const Pill: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <span
-      style={{
-        padding: "8px 12px",
-        borderRadius: 999,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: "rgba(255,255,255,0.06)",
-        fontSize: 14,
-        fontWeight: 700,
-      }}
-    >
-      {children}
-    </span>
-  );
-
   const renderHearts = (mistakes: number) => {
     const total = 3;
     const filled = Math.max(0, total - mistakes);
     return (
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }} aria-label="lives">
+      <div
+        style={{ display: "flex", gap: 6, alignItems: "center" }}
+        aria-label="lives"
+      >
         {Array.from({ length: total }).map((_, i) => (
           <span
             key={i}
-            style={{ fontSize: 18, lineHeight: 1, filter: "drop-shadow(0 0 4px rgba(255,255,255,0.25))", opacity: 0.95 }}
+            style={{
+              fontSize: 18,
+              lineHeight: 1,
+              filter: "drop-shadow(0 0 4px rgba(255,255,255,0.25))",
+              opacity: 0.95,
+            }}
             aria-hidden
           >
             {i < filled ? "❤" : "♡"}
@@ -106,7 +105,8 @@ export default function SequenceMemoryPage() {
     );
   };
 
-  const isBlurred = phase === "ready" || phase === "countdown" || phase === "lost";
+  const isBlurred =
+    phase === "ready" || phase === "countdown" || phase === "lost";
 
   return (
     <div
@@ -120,8 +120,12 @@ export default function SequenceMemoryPage() {
       }}
     >
       <TopBar />
-      <main style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}>
-        <section style={{ width: "min(92vw, 720px)", display: "grid", gap: 16 }}>
+      <main
+        style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}
+      >
+        <section
+          style={{ width: "min(92vw, 720px)", display: "grid", gap: 16 }}
+        >
           {/* TOP BAR: Level • Hearts • Best Level */}
           <div
             style={{
@@ -133,13 +137,25 @@ export default function SequenceMemoryPage() {
               fontSize: 14,
             }}
           >
-            <div style={{ justifySelf: "start", fontWeight: 900 }}>Level: {seqLen}</div>
-            <div style={{ justifySelf: "center" }}>{renderHearts(mistakes)}</div>
-            <div style={{ justifySelf: "end", fontWeight: 900 }}>Best Level: {bestLevel}</div>
+            <div style={{ justifySelf: "start", fontWeight: 900 }}>
+              Level: {seqLen}
+            </div>
+            <div style={{ justifySelf: "center" }}>
+              {renderHearts(mistakes)}
+            </div>
+            <div style={{ justifySelf: "end", fontWeight: 900 }}>
+              Best Level: {bestLevel}
+            </div>
           </div>
 
           {/* BOARD WRAPPER */}
-          <div style={{ width: "min(92vw, 640px)", margin: "0 auto", position: "relative" }}>
+          <div
+            style={{
+              width: "min(92vw, 640px)",
+              margin: "0 auto",
+              position: "relative",
+            }}
+          >
             <SequenceGameBoard
               gridSize={GRID_SIZE}
               sequence={sequence}
@@ -152,9 +168,19 @@ export default function SequenceMemoryPage() {
             />
 
             {/* BOTTOM divider + full-width Restart */}
-            <div style={{ marginTop: 10, filter: isBlurred ? "blur(6px)" : "none", transition: "filter 160ms ease" }}>
+            <div
+              style={{
+                marginTop: 10,
+                filter: isBlurred ? "blur(6px)" : "none",
+                transition: "filter 160ms ease",
+              }}
+            >
               <hr className="sm-divider" />
-              <button className="sm-btn sm-btn--flat sm-btn--full" onClick={restart} aria-label="Restart">
+              <button
+                className="sm-btn sm-btn--flat sm-btn--full"
+                onClick={restart}
+                aria-label="Restart"
+              >
                 Restart
               </button>
             </div>
@@ -186,13 +212,16 @@ export default function SequenceMemoryPage() {
                   pointerEvents: "none",
                 }}
               >
-                <div className="countdown-bubble" aria-live="polite" role="status">
+                <div
+                  className="countdown-bubble"
+                  aria-live="polite"
+                  role="status"
+                >
                   {countdown}
                 </div>
               </div>
             )}
 
-            {/* LOST OVERLAY WITH STATS */}
             {phase === "lost" && (
               <div
                 style={{
@@ -201,39 +230,140 @@ export default function SequenceMemoryPage() {
                   display: "grid",
                   placeItems: "center",
                   pointerEvents: "auto",
+                  // ✨ match the Start overlay: no custom backdrop, rely on isBlurred
+                  background: "transparent",
                 }}
               >
                 <div
+                  role="dialog"
+                  aria-label="Sequence Memory - level failed"
                   style={{
-                    pointerEvents: "auto",
-                    display: "grid",
-                    gap: 12,
-                    placeItems: "center",
-                    background: "rgba(6, 8, 18, 0.55)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    borderRadius: 14,
-                    padding: 16,
-                    backdropFilter: "blur(6px)",
+                    textAlign: "center",
+                    padding: "22px 20px",
+                    borderRadius: 16,
+                    background: "rgba(2,6,23,0.86)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
                     width: "min(520px, 92%)",
+                    color: "rgba(255,255,255,0.95)",
                   }}
                 >
-                  <div style={{ fontSize: 20, fontWeight: 900 }}>You lost!</div>
+                  {/* Badge */}
+                  <div
+                    style={{
+                      width: 72,
+                      height: 72,
+                      margin: "0 auto 10px",
+                      borderRadius: "50%",
+                      display: "grid",
+                      placeItems: "center",
+                      background:
+                        "conic-gradient(from 0deg, rgba(239,68,68,0.9), rgba(147,51,234,0.9), rgba(239,68,68,0.9))",
+                      boxShadow: "0 8px 30px rgba(239,68,68,0.35)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: "50%",
+                        display: "grid",
+                        placeItems: "center",
+                        background: "#0b1220",
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        fontSize: 34,
+                        fontWeight: 900,
+                      }}
+                      aria-hidden
+                    >
+                      ✕
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 900,
+                      letterSpacing: 0.2,
+                    }}
+                  >
+                    Level Failed
+                  </div>
+                  <div style={{ opacity: 0.85, marginTop: 4, fontSize: 13 }}>
+                    Keep going — you’ve got this!
+                  </div>
+
+                  {/* Stats — ONLY the three requested */}
                   <div
                     style={{
                       display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
                       justifyContent: "center",
+                      alignItems: "center",
+                      gap: 10,
+                      marginTop: 14,
+                      flexWrap: "wrap",
                     }}
                   >
-                    <Pill>Reached: {seqLen}</Pill>
-                    <Pill>Score: {score}</Pill>
-                    <Pill>Best Level: {bestLevel}</Pill>
-                    <Pill>Best Score: {bestScore}</Pill>
+                    {[
+                      {
+                        k: "level",
+                        name: "Current Level",
+                        val: String(seqLen),
+                      },
+                      { k: "best", name: "Best Level", val: String(bestLevel) },
+                      {
+                        k: "speed",
+                        name: "Avg Speed",
+                        val: formatSpeed(avgMsPerPick),
+                      },
+                    ].map((s) => (
+                      <div
+                        key={s.k}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 10,
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.14)",
+                          minWidth: 120,
+                        }}
+                      >
+                        <div style={{ fontSize: 11, opacity: 0.85 }}>
+                          {s.name}
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800 }}>
+                          {s.val}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <button className="sm-btn" onClick={restart} aria-label="Restart overlay">
-                    Restart
-                  </button>
+
+                  {/* Actions */}
+                  <div
+                    style={{
+                      marginTop: 16,
+                      display: "flex",
+                      gap: 12,
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <button
+                      onClick={restart}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        border: "1px solid rgba(59,130,246,0.55)",
+                        background: "rgba(59,130,246,0.18)",
+                        color: "white",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        boxShadow: "0 6px 24px rgba(59,130,246,0.35)",
+                      }}
+                      aria-label="Restart"
+                    >
+                      Try Again
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

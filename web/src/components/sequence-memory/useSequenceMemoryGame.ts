@@ -30,7 +30,8 @@ export function useSequenceMemoryGame() {
   const [inputPos, setInputPos] = React.useState(0);
   const [mistakes, setMistakes] = React.useState(0);
   const [wrongAt, setWrongAt] = React.useState<number | null>(null);
-
+const [inputStartAt, setInputStartAt] = React.useState<number | null>(null);
+const [avgMsPerPick, setAvgMsPerPick] = React.useState<number | null>(null);
   // SCORE
   const [score, setScore] = React.useState(0);
   const [bestLevel, setBestLevel] = React.useState<number>(() =>
@@ -54,57 +55,70 @@ export function useSequenceMemoryGame() {
 
   // main game loop for showing flashes
   const scheduleShow = React.useCallback((len: number) => {
-const seq = pickSequence(GRID_SIZE * GRID_SIZE, len);
-    setSequence(seq);
-    setFlashIndex(null);
-    setInputPos(0);
-    // DO NOT reset mistakes here — hearts persist across levels like Visual Memory
-    setWrongAt(null);
-    setPhase("show");
+  const seq = pickSequence(GRID_SIZE * GRID_SIZE, len);
+  setSequence(seq);
+  setFlashIndex(null);
+  setInputPos(0);
+  setWrongAt(null);
+  setPhase("show");
 
-    // schedule flashes
-    let when = 400; // small lead-in
-    seq.forEach((_, i) => {
-      timers.current.push(window.setTimeout(() => setFlashIndex(i), when));
-      when += FLASH_ON_MS;
-      timers.current.push(window.setTimeout(() => setFlashIndex(null), when));
-      when += FLASH_GAP_MS;
-    });
-    timers.current.push(window.setTimeout(() => setPhase("input"), when));
-  }, []);
+  let when = 400;
+  seq.forEach((_, i) => {
+    timers.current.push(window.setTimeout(() => setFlashIndex(i), when));
+    when += FLASH_ON_MS;
+    timers.current.push(window.setTimeout(() => setFlashIndex(null), when));
+    when += FLASH_GAP_MS;
+  });
+
+  // NEW: enter input + mark start time
+  timers.current.push(window.setTimeout(() => {
+    setPhase("input");
+    setInputStartAt(Date.now());
+    setAvgMsPerPick(null);
+  }, when));
+}, []);
+
 
   const start = React.useCallback(() => {
-    clearTimers();
-    setScore(0);
-    setSeqLen(3);
-    setMistakes(0); // reset hearts on a fresh run
-    setCountdown(0);
-    setSeconds(0);  // reset timer at the start of a run
-    scheduleShow(3);
-  }, [clearTimers, scheduleShow]);
+  clearTimers();
+  setScore(0);
+  setSeqLen(3);
+  setMistakes(0);
+  setCountdown(0);
+  setSeconds(0);
+  setAvgMsPerPick(null);       
+  setInputStartAt(null);      
+  scheduleShow(3);
+}, [clearTimers, scheduleShow]);
 
   const nextLevel = React.useCallback(() => {
-    clearTimers();
-    setSeqLen((prev) => {
-      const next = prev + 1;
-      scheduleShow(next);
-      return next;
-    });
-  }, [clearTimers, scheduleShow]);
+  clearTimers();
+  setSeqLen((prev) => {
+    const next = prev + 1;
+    setAvgMsPerPick(null);     // NEW
+    setInputStartAt(null);     // NEW
+    scheduleShow(next);
+    return next;
+  });
+}, [clearTimers, scheduleShow]);
+
 
   const restart = React.useCallback(() => {
-    clearTimers();
-    setPhase("ready");
-    setSequence([]);
-    setFlashIndex(null);
-    setInputPos(0);
-    setMistakes(0);
-    setWrongAt(null);
-    setScore(0);
-    setSeqLen(3);
-    setCountdown(0);
-    setSeconds(0);
-  }, [clearTimers]);
+  clearTimers();
+  setPhase("ready");
+  setSequence([]);
+  setFlashIndex(null);
+  setInputPos(0);
+  setMistakes(0);
+  setWrongAt(null);
+  setScore(0);
+  setSeqLen(3);
+  setCountdown(0);
+  setSeconds(0);
+  setAvgMsPerPick(null);       // NEW
+  setInputStartAt(null);       // NEW
+}, [clearTimers]);
+
 
   const beginAutoAdvance = React.useCallback(() => {
     // 3-second visible countdown then go to next level
@@ -121,41 +135,60 @@ const seq = pickSequence(GRID_SIZE * GRID_SIZE, len);
   }, [nextLevel]);
 
   const handleCellClick = React.useCallback(
-    (index: number) => {
-      if (phase !== "input") return;
-      const expected = sequence[inputPos];
-      if (index === expected) {
-        const next = inputPos + 1;
-        setInputPos(next);
-        if (next >= sequence.length) {
-          // WON this level — award score and update bests, then auto-advance with countdown
-          setScore((s) => {
-            const ns = s + seqLen; // 1 point per correct pick
-            if (ns > bestScore) {
-              localStorage.setItem(STORAGE_KEYS.bestScore, String(ns));
-              setBestScore(ns);
-            }
-            return ns;
-          });
-          if (seqLen > bestLevel) {
-            localStorage.setItem(STORAGE_KEYS.bestLevel, String(seqLen));
-            setBestLevel(seqLen);
+  (index: number) => {
+    if (phase !== "input") return;
+    const expected = sequence[inputPos];
+    if (index === expected) {
+      const next = inputPos + 1;
+      setInputPos(next);
+      if (next >= sequence.length) {
+        // finished the level — compute avg ms/pick for this level
+        setScore((s) => {
+          const ns = s + seqLen;
+          if (ns > bestScore) {
+            localStorage.setItem(STORAGE_KEYS.bestScore, String(ns));
+            setBestScore(ns);
           }
-          beginAutoAdvance();
+          return ns;
+        });
+        if (seqLen > bestLevel) {
+          localStorage.setItem(STORAGE_KEYS.bestLevel, String(seqLen));
+          setBestLevel(seqLen);
         }
-      } else {
-        const nextMistakes = mistakes + 1;
-        setMistakes(nextMistakes);
-        setWrongAt(index);
-        const t = window.setTimeout(() => setWrongAt(null), 400);
-        timers.current.push(t);
-        if (nextMistakes >= MISTAKES_ALLOWED) {
-          setPhase("lost");
+
+        if (inputStartAt != null && sequence.length > 0) {
+          const duration = Date.now() - inputStartAt;
+          setAvgMsPerPick(duration / sequence.length);
+        } else {
+          setAvgMsPerPick(null);
         }
+        setInputStartAt(null);
+        beginAutoAdvance();
       }
-    },
-    [phase, inputPos, sequence, mistakes, seqLen, bestLevel, bestScore, beginAutoAdvance]
-  );
+    } else {
+      const nextMistakes = mistakes + 1;
+      setMistakes(nextMistakes);
+      setWrongAt(index);
+      const t = window.setTimeout(() => setWrongAt(null), 400);
+      timers.current.push(t);
+
+      if (nextMistakes >= MISTAKES_ALLOWED) {
+        // compute avg with the correct picks done so far
+        const picksSoFar = inputPos;
+        if (inputStartAt != null && picksSoFar > 0) {
+          const duration = Date.now() - inputStartAt;
+          setAvgMsPerPick(duration / picksSoFar);
+        } else {
+          setAvgMsPerPick(null);
+        }
+        setInputStartAt(null);
+        setPhase("lost");
+      }
+    }
+  },
+  [phase, inputPos, sequence, mistakes, seqLen, bestLevel, bestScore, beginAutoAdvance, inputStartAt]
+);
+
 
   // Run timer: tick when the game is active (not in ready or lost)
   React.useEffect(() => {
@@ -167,31 +200,35 @@ const seq = pickSequence(GRID_SIZE * GRID_SIZE, len);
   React.useEffect(() => () => clearTimers(), [clearTimers]);
 
   return {
-    // constants
-    GRID_SIZE,
+  // constants
+  GRID_SIZE,
 
-    // state
-    phase,
-    sequence,
-    flashIndex,     // which item in the sequence is currently flashing (null if none)
-    inputPos,       // how many correct steps entered
-    mistakes,
-    wrongAt,
-    seqLen,
-    countdown,
-    seconds,
+  // state
+  phase,
+  sequence,
+  flashIndex,
+  inputPos,
+  mistakes,
+  wrongAt,
+  seqLen,
+  countdown,
+  seconds,
 
-    // scores
-    score,
-    bestLevel,
-    bestScore,
+  // scores
+  score,
+  bestLevel,
+  bestScore,
 
-    // actions
-    start,
-    nextLevel, // (kept for internal use)
-    restart,
-    handleCellClick,
-  } as const;
+  // NEW metric
+  avgMsPerPick,
+
+  // actions
+  start,
+  nextLevel,
+  restart,
+  handleCellClick,
+} as const;
+
 }
 
 

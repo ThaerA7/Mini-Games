@@ -815,7 +815,7 @@ export default function KillerSudokuBoard() {
                 overflow: "hidden",
                 userSelect: "none",
                 filter: showSolvedOverlay
-                  ? "blur(4px) saturate(0.8) brightness(0.9)"
+                  ? "blur(6px)"
                   : "none",
                 pointerEvents: showSolvedOverlay ? "none" : "auto",
                 transition: "filter 200ms ease",
@@ -1027,19 +1027,20 @@ export default function KillerSudokuBoard() {
 
             {/* SOLVED OVERLAY */}
             {showSolvedOverlay && (
-              <div
-                role="dialog"
-                aria-label="Killer sudoku solved summary"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "grid",
-                  placeItems: "center",
-                  padding: 16,
-                  background:
-                    "radial-gradient(1200px 1200px at 50% 50%, rgba(2,6,23,0.68), rgba(2,6,23,0.92))",
-                }}
-              >
+  <div
+    role="dialog"
+    aria-label="Sudoku solved summary"
+    style={{
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center",
+      padding: 16,
+      pointerEvents: "auto",
+      // ✅ transparent; rely on the board's blur (same as your Start screen)
+      background: "transparent",
+    }}
+  >
                 <div
                   style={{
                     textAlign: "center",
