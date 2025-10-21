@@ -163,13 +163,15 @@ export default function VisualMemoryPage() {
               }}
             >
               <div style={{ justifySelf: "start", fontWeight: 700 }}>
-                Best: {stats.bestLevel}
+                Current Level: {level}
               </div>
+
               <div style={{ justifySelf: "center" }}>
                 {renderHearts(hearts)}
               </div>
+
               <div style={{ justifySelf: "end", fontWeight: 700 }}>
-                Level: {level}
+                Best Level: {stats.bestLevel}
               </div>
             </div>
           </div>

@@ -16,7 +16,7 @@ export default function SequenceMemoryPage() {
     restart,
     bestLevel,
 
-    seqLen,
+    level, // 👈 was seqLen
     mistakes,
     countdown,
     handleCellClick,
@@ -138,7 +138,7 @@ export default function SequenceMemoryPage() {
             }}
           >
             <div style={{ justifySelf: "start", fontWeight: 900 }}>
-              Level: {seqLen}
+              Current Level: {level} {/* 👈 was seqLen */}
             </div>
             <div style={{ justifySelf: "center" }}>
               {renderHearts(mistakes)}
@@ -196,7 +196,8 @@ export default function SequenceMemoryPage() {
                   pointerEvents: "auto",
                 }}
               >
-                <button className="sm-btn" onClick={start} aria-label="Start">
+                <button className="sm-btn" onClick={start} style={{ height: 56, padding: "0 24px", fontSize: 22 }} aria-label="Start">
+                  
                   Start
                 </button>
               </div>
@@ -308,7 +309,7 @@ export default function SequenceMemoryPage() {
                       {
                         k: "level",
                         name: "Current Level",
-                        val: String(seqLen),
+                        val: String(level),
                       },
                       { k: "best", name: "Best Level", val: String(bestLevel) },
                       {

@@ -40,7 +40,7 @@ export default function KillerSudokuBoard() {
       minCage: 2,
       maxCage: 4,
       difficulty: "hard",
-      baseNumbersCount: 22,
+      baseNumbersCount: 25,
       symmetricGivens: true,
       avoidEasyPairSums: true,
     });
@@ -814,9 +814,7 @@ export default function KillerSudokuBoard() {
                 boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
                 overflow: "hidden",
                 userSelect: "none",
-                filter: showSolvedOverlay
-                  ? "blur(6px)"
-                  : "none",
+                filter: showSolvedOverlay ? "blur(6px)" : "none",
                 pointerEvents: showSolvedOverlay ? "none" : "auto",
                 transition: "filter 200ms ease",
               }}
@@ -1027,20 +1025,19 @@ export default function KillerSudokuBoard() {
 
             {/* SOLVED OVERLAY */}
             {showSolvedOverlay && (
-  <div
-    role="dialog"
-    aria-label="Sudoku solved summary"
-    style={{
-      position: "absolute",
-      inset: 0,
-      display: "grid",
-      placeItems: "center",
-      padding: 16,
-      pointerEvents: "auto",
-      // ✅ transparent; rely on the board's blur (same as your Start screen)
-      background: "transparent",
-    }}
-  >
+              <div
+                role="dialog"
+                aria-label="Sudoku solved summary"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  padding: 16,
+                  pointerEvents: "auto",
+                  background: "transparent",
+                }}
+              >
                 <div
                   style={{
                     textAlign: "center",
