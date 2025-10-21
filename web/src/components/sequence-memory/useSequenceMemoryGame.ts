@@ -14,15 +14,13 @@ const STORAGE_KEYS = {
   bestScore: "seqmem.bestScore",
 } as const;
 
-function pickUniqueSequence(total: number, length: number): number[] {
-  const pool = Array.from({ length: total }, (_, i) => i);
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+function pickSequence(total: number, length: number): number[] {
+  const seq: number[] = [];
+  for (let i = 0; i < length; i++) {
+    seq.push(Math.floor(Math.random() * total)); // sample with replacement
   }
-  return pool.slice(0, Math.min(total, length));
+  return seq;
 }
-
 export function useSequenceMemoryGame() {
   // GAME STATE
   const [phase, setPhase] = React.useState<SeqPhase>("ready");
@@ -56,7 +54,7 @@ export function useSequenceMemoryGame() {
 
   // main game loop for showing flashes
   const scheduleShow = React.useCallback((len: number) => {
-    const seq = pickUniqueSequence(GRID_SIZE * GRID_SIZE, len);
+const seq = pickSequence(GRID_SIZE * GRID_SIZE, len);
     setSequence(seq);
     setFlashIndex(null);
     setInputPos(0);

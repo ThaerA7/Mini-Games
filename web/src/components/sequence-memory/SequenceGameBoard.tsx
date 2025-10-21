@@ -3,12 +3,12 @@ import React from "react";
 import type { SeqPhase } from "./useSequenceMemoryGame";
 
 type Props = {
-  gridSize: number;           // 4
-  sequence: number[];         // e.g. [5, 2, 11]
-  phase: SeqPhase;            // "show" | "input" | "countdown" | ...
-  flashIndex: number | null;  // which index in sequence is glowing during "show"
-  inputPos: number;           // how many correct clicks so far
-  wrongAt: number | null;     // last wrong cell clicked (for a brief red flash)
+  gridSize: number;
+  sequence: number[];
+  phase: SeqPhase;
+  flashIndex: number | null;
+  inputPos: number;
+  wrongAt: number | null;
   onCellClick: (idx: number) => void;
   isBlurred?: boolean;
 };
@@ -24,6 +24,7 @@ export default function SequenceGameBoard({
   isBlurred = false,
 }: Props) {
   const count = gridSize * gridSize;
+
   const containerStyle: React.CSSProperties = {
     width: "min(92vw, 640px)",
     margin: "0 auto",
@@ -36,6 +37,7 @@ export default function SequenceGameBoard({
   };
 
   const baseCell: React.CSSProperties = {
+    position: "relative",
     aspectRatio: "1 / 1",
     borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.10)",
@@ -53,36 +55,79 @@ export default function SequenceGameBoard({
     transform: "translateY(-2px)",
   };
 
-  const correctSoFarStyle: React.CSSProperties = {
-    background: "rgba(90, 220, 90, 0.85)",
-  };
-
   const wrongStyle: React.CSSProperties = {
     background: "rgba(255, 70, 70, 0.9)",
   };
 
-  // Map of sequence index -> cell id
+  // Dynamic stepped progress color per cell:
+  // Each correct click on the same cell advances one step toward a brighter green.
+  function getProgressStyle(total: number, done: number): React.CSSProperties {
+    // clamp
+    const t = Math.max(1, total);
+    const k = Math.min(Math.max(1, done), t);
+
+    // Map step k in [1..t] to HSL lightness & alpha so each step is visually distinct.
+    // Hue fixed near green; lightness & alpha increase with progress.
+    const hue = 145; // green
+    const sat = 65;  // %
+    const lightMin = 38; // %
+    const lightMax = 62; // %
+    const alphaMin = 0.55;
+    const alphaMax = 0.85;
+
+    const lightness = lightMin + (lightMax - lightMin) * (k / t);
+    const alpha = alphaMin + (alphaMax - alphaMin) * (k / t);
+
+    const bg = `hsla(${hue}, ${sat}%, ${lightness}%, ${alpha})`;
+    const inset = `0 0 0 1px hsla(${hue}, 80%, ${Math.min(
+      75,
+      lightness + 8
+    )}%, ${0.45 + 0.25 * (k / t)}) inset`;
+
+    return {
+      background: bg,
+      boxShadow: `${inset}, 0 6px 16px rgba(0,0,0,0.28)`,
+      transform: "translateY(-1px)",
+    };
+  }
+
+  // Which cell is flashing during "show"
   const seqOrderToCell = sequence;
-
-  // Set of cells already correctly entered
-  const enteredSet = new Set(seqOrderToCell.slice(0, inputPos));
-
   const flashingCellId =
     phase === "show" && flashIndex !== null ? seqOrderToCell[flashIndex] : null;
+
+  // Build counts
+  const totalCounts = React.useMemo(() => {
+    const arr = Array<number>(count).fill(0);
+    for (const id of sequence) arr[id] += 1;
+    return arr;
+  }, [sequence, count]);
+
+  const doneCounts = React.useMemo(() => {
+    const arr = Array<number>(count).fill(0);
+    for (const id of sequence.slice(0, inputPos)) arr[id] += 1;
+    return arr;
+  }, [sequence, inputPos, count]);
 
   return (
     <div style={containerStyle} aria-label="sequence-board">
       {Array.from({ length: count }).map((_, i) => {
         const isFlashing = i === flashingCellId;
-        const isEntered = enteredSet.has(i);
         const isWrong = i === wrongAt;
 
-        const style: React.CSSProperties = {
-          ...baseCell,
-          ...(isFlashing ? glowStyle : null),
-          ...(isEntered ? correctSoFarStyle : null),
-          ...(isWrong ? wrongStyle : null),
-        };
+        const total = totalCounts[i]; // total times this cell appears in the sequence
+        const done = doneCounts[i];   // how many of those have been correctly entered
+
+        // Compose styles by priority:
+        // wrong > flashing > progress (only after first correct click) > base
+        let style: React.CSSProperties = { ...baseCell };
+
+        if (done > 0) {
+          style = { ...style, ...getProgressStyle(total, done) };
+        }
+
+        if (isFlashing) style = { ...style, ...glowStyle };
+        if (isWrong) style = { ...style, ...wrongStyle };
 
         return (
           <div
