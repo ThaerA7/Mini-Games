@@ -1,8 +1,9 @@
+// src/components/chimp/ChimpBoard.tsx
 import * as React from "react";
 import type { Cell, Phase } from "./useChimpGame";
 
 type Props = {
-  gridSize: number; // still used to size tiles nicely relative to area
+  gridSize: number;
   cells: Cell[];
   phase: Phase;
   onCellClick: (c: Cell) => void;
@@ -21,8 +22,6 @@ export default function ChimpBoard({
   clearedNumbers,
 }: Props) {
   const showNumbers = phase === "show";
-
-  // container sizing
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
   const [size, setSize] = React.useState({ w: 480, h: 480 });
 
@@ -37,7 +36,6 @@ export default function ChimpBoard({
     return () => ro.disconnect();
   }, []);
 
-  // Only render tokens that actually have a number.
   const tokens = React.useMemo(
     () =>
       cells.filter((c) => typeof c.number === "number") as Array<
@@ -46,9 +44,7 @@ export default function ChimpBoard({
     [cells]
   );
 
-  // Seeded RNG for stable placement within a round
   function rng(seed: number) {
-    // mulberry32
     let t = seed >>> 0;
     return () => {
       t += 0x6d2b79f5;
@@ -58,21 +54,17 @@ export default function ChimpBoard({
     };
   }
 
-  // Simple non-overlapping placement (best-effort)
   const placements = React.useMemo(() => {
     const r = rng(roundId * 100003 + tokens.length * 97 + gridSize * 13);
     const W = size.w;
     const H = size.h;
-
-    // tile size scales with board and density
     const base = Math.min(W, H);
     const density = Math.max(1, Math.sqrt(tokens.length));
     const diameter = Math.max(
       36,
-      Math.min(72, Math.floor(base / (density + 1.75)))
+      Math.min(92, Math.floor(base / (density + 1.75)))
     );
     const margin = Math.max(4, Math.floor(diameter * 0.15));
-
     type P = {
       left: number;
       top: number;
@@ -81,10 +73,8 @@ export default function ChimpBoard({
       cell: Required<Cell>;
     };
     const placed: P[] = [];
-
     const maxLeft = Math.max(0, W - diameter - margin);
     const maxTop = Math.max(0, H - diameter - margin);
-
     function overlaps(a: P, b: P) {
       return !(
         a.left + a.d + margin < b.left ||
@@ -93,13 +83,10 @@ export default function ChimpBoard({
         b.top + b.d + margin < a.top
       );
     }
-
-    // place in number order for determinism
     const sorted = [...tokens].sort((a, b) => a.number! - b.number!);
-
     for (const cell of sorted) {
       let placedOne: P | null = null;
-      const attempts = 600; // generous; will fall back to allowing overlap if needed
+      const attempts = 600;
       for (let k = 0; k < attempts; k++) {
         const left = Math.floor(margin + r() * maxLeft);
         const top = Math.floor(margin + r() * maxTop);
@@ -110,7 +97,6 @@ export default function ChimpBoard({
         }
       }
       if (!placedOne) {
-        // fallback: allow overlap when crowded
         placedOne = {
           left: Math.floor(margin + r() * maxLeft),
           top: Math.floor(margin + r() * maxTop),
@@ -125,22 +111,23 @@ export default function ChimpBoard({
   }, [roundId, tokens, gridSize, size.w, size.h]);
 
   const wrapStyle: React.CSSProperties = {
-    width: "min(94vw, 800px)", // ⬅️ match header/footer width
-    height: "min(94vw, 500px)", // keep it square and responsive
+    width: "min(94vw, 800px)",
+    height: "min(94vw, 500px)",
     margin: "0 auto",
     position: "relative",
     filter: blurred ? "blur(6px)" : "none",
     transition: "filter .2s ease",
-    background: "transparent", // ⬅️ remove grid/board background
+    background: "transparent",
     borderRadius: 16,
   };
 
   const tokenStyleBase: React.CSSProperties = {
     position: "absolute",
-    display: "grid",
-    placeItems: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: "9999px",
-    background: "rgba(255,255,255,0.10)", // change to 'transparent' if you want zero fill
+    background: "rgba(255,255,255,0.10)",
     border: "1px solid rgba(255,255,255,0.18)",
     boxShadow:
       "0 8px 18px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.06)",
@@ -153,11 +140,15 @@ export default function ChimpBoard({
     fontFamily:
       "'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif",
     fontWeight: 800,
-    fontSize: "clamp(14px, 2.8vw, 22px)",
+    fontSize: "clamp(28px, 4.8vw, 50px)",
     lineHeight: 1,
     color: "#e5e7eb",
-    padding: "2px 8px",
+    padding: 0,
+    textAlign: "center",
+    fontVariantNumeric: "tabular-nums lining-nums",
+    fontFeatureSettings: "'tnum' 1, 'lnum' 1",
   };
+
   const clearedSet = React.useMemo(
     () => new Set(clearedNumbers),
     [clearedNumbers]
@@ -166,7 +157,7 @@ export default function ChimpBoard({
   return (
     <div ref={wrapRef} style={wrapStyle} aria-label="chimp-random-board">
       {placements
-        .filter((p) => !clearedSet.has(p.n)) // 👈 don't render cleared tokens
+        .filter((p) => !clearedSet.has(p.n))
         .map((p) => (
           <button
             key={p.n}
