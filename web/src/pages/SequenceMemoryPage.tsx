@@ -15,13 +15,13 @@ export default function SequenceMemoryPage() {
     start,
     restart,
     bestLevel,
-
     level, // 👈 was seqLen
     mistakes,
     countdown,
     handleCellClick,
     avgMsPerPick,
   } = useSequenceMemoryGame();
+
   const formatSpeed = (ms: number | null) =>
     ms == null
       ? "—"
@@ -138,7 +138,7 @@ export default function SequenceMemoryPage() {
             }}
           >
             <div style={{ justifySelf: "start", fontWeight: 900 }}>
-              Current Level: {level} {/* 👈 was seqLen */}
+              Current Level: {level}
             </div>
             <div style={{ justifySelf: "center" }}>
               {renderHearts(mistakes)}
@@ -153,21 +153,202 @@ export default function SequenceMemoryPage() {
             style={{
               width: "min(92vw, 640px)",
               margin: "0 auto",
-              position: "relative",
             }}
           >
-            <SequenceGameBoard
-              gridSize={GRID_SIZE}
-              sequence={sequence}
-              phase={phase}
-              flashIndex={flashIndex}
-              inputPos={inputPos}
-              wrongAt={wrongAt}
-              onCellClick={handleCellClick}
-              isBlurred={isBlurred}
-            />
+            {/* Board + overlays (relative to the grid only) */}
+            <div style={{ position: "relative" }}>
+              <SequenceGameBoard
+                gridSize={GRID_SIZE}
+                sequence={sequence}
+                phase={phase}
+                flashIndex={flashIndex}
+                inputPos={inputPos}
+                wrongAt={wrongAt}
+                onCellClick={handleCellClick}
+                isBlurred={isBlurred}
+              />
 
-            {/* BOTTOM divider + full-width Restart */}
+              {/* OVERLAYS — centered on the grid, not counting the Restart row */}
+              {phase === "ready" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    pointerEvents: "auto",
+                  }}
+                >
+                  <button
+                    className="sm-btn"
+                    onClick={start}
+                    style={{ height: 56, padding: "0 24px", fontSize: 22 }}
+                    aria-label="Start"
+                  >
+                    Start
+                  </button>
+                </div>
+              )}
+
+              {phase === "countdown" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <div className="countdown-bubble" aria-live="polite" role="status">
+                    {countdown}
+                  </div>
+                </div>
+              )}
+
+              {phase === "lost" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    pointerEvents: "auto",
+                    background: "transparent",
+                  }}
+                >
+                  <div
+                    role="dialog"
+                    aria-label="Sequence Memory - level failed"
+                    style={{
+                      textAlign: "center",
+                      padding: "22px 20px",
+                      borderRadius: 16,
+                      background: "rgba(2,6,23,0.86)",
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
+                      width: "min(520px, 92%)",
+                      color: "rgba(255,255,255,0.95)",
+                    }}
+                  >
+                    {/* Badge */}
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        margin: "0 auto 10px",
+                        borderRadius: "50%",
+                        display: "grid",
+                        placeItems: "center",
+                        background:
+                          "conic-gradient(from 0deg, rgba(239,68,68,0.9), rgba(147,51,234,0.9), rgba(239,68,68,0.9))",
+                        boxShadow: "0 8px 30px rgba(239,68,68,0.35)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: "50%",
+                          display: "grid",
+                          placeItems: "center",
+                          background: "#0b1220",
+                          border: "1px solid rgba(255,255,255,0.18)",
+                          fontSize: 34,
+                          fontWeight: 900,
+                        }}
+                        aria-hidden
+                      >
+                        ✕
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 900,
+                        letterSpacing: 0.2,
+                      }}
+                    >
+                      Level Failed
+                    </div>
+                    <div style={{ opacity: 0.85, marginTop: 4, fontSize: 13 }}>
+                      Keep going — you’ve got this!
+                    </div>
+
+                    {/* Stats — ONLY the three requested */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 10,
+                        marginTop: 14,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {[
+                        { k: "level", name: "Current Level", val: String(level) },
+                        { k: "best", name: "Best Level", val: String(bestLevel) },
+                        {
+                          k: "speed",
+                          name: "Avg Speed",
+                          val: formatSpeed(avgMsPerPick),
+                        },
+                      ].map((s) => (
+                        <div
+                          key={s.k}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 10,
+                            background: "rgba(255,255,255,0.06)",
+                            border: "1px solid rgba(255,255,255,0.14)",
+                            minWidth: 120,
+                          }}
+                        >
+                          <div style={{ fontSize: 11, opacity: 0.85 }}>
+                            {s.name}
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 800 }}>
+                            {s.val}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Actions */}
+                    <div
+                      style={{
+                        marginTop: 16,
+                        display: "flex",
+                        gap: 12,
+                        justifyContent: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <button
+                        onClick={restart}
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: 10,
+                          border: "1px solid rgba(59,130,246,0.55)",
+                          background: "rgba(59,130,246,0.18)",
+                          color: "white",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          boxShadow: "0 6px 24px rgba(59,130,246,0.35)",
+                        }}
+                        aria-label="Restart"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BOTTOM divider + full-width Restart (not counted for centering) */}
             <div
               style={{
                 marginTop: 10,
@@ -184,190 +365,6 @@ export default function SequenceMemoryPage() {
                 Restart
               </button>
             </div>
-
-            {/* OVERLAYS */}
-            {phase === "ready" && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "grid",
-                  placeItems: "center",
-                  pointerEvents: "auto",
-                }}
-              >
-                <button className="sm-btn" onClick={start} style={{ height: 56, padding: "0 24px", fontSize: 22 }} aria-label="Start">
-                  
-                  Start
-                </button>
-              </div>
-            )}
-
-            {phase === "countdown" && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "grid",
-                  placeItems: "center",
-                  pointerEvents: "none",
-                }}
-              >
-                <div
-                  className="countdown-bubble"
-                  aria-live="polite"
-                  role="status"
-                >
-                  {countdown}
-                </div>
-              </div>
-            )}
-
-            {phase === "lost" && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "grid",
-                  placeItems: "center",
-                  pointerEvents: "auto",
-                  // ✨ match the Start overlay: no custom backdrop, rely on isBlurred
-                  background: "transparent",
-                }}
-              >
-                <div
-                  role="dialog"
-                  aria-label="Sequence Memory - level failed"
-                  style={{
-                    textAlign: "center",
-                    padding: "22px 20px",
-                    borderRadius: 16,
-                    background: "rgba(2,6,23,0.86)",
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
-                    width: "min(520px, 92%)",
-                    color: "rgba(255,255,255,0.95)",
-                  }}
-                >
-                  {/* Badge */}
-                  <div
-                    style={{
-                      width: 72,
-                      height: 72,
-                      margin: "0 auto 10px",
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      background:
-                        "conic-gradient(from 0deg, rgba(239,68,68,0.9), rgba(147,51,234,0.9), rgba(239,68,68,0.9))",
-                      boxShadow: "0 8px 30px rgba(239,68,68,0.35)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: "50%",
-                        display: "grid",
-                        placeItems: "center",
-                        background: "#0b1220",
-                        border: "1px solid rgba(255,255,255,0.18)",
-                        fontSize: 34,
-                        fontWeight: 900,
-                      }}
-                      aria-hidden
-                    >
-                      ✕
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 900,
-                      letterSpacing: 0.2,
-                    }}
-                  >
-                    Level Failed
-                  </div>
-                  <div style={{ opacity: 0.85, marginTop: 4, fontSize: 13 }}>
-                    Keep going — you’ve got this!
-                  </div>
-
-                  {/* Stats — ONLY the three requested */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      gap: 10,
-                      marginTop: 14,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {[
-                      {
-                        k: "level",
-                        name: "Current Level",
-                        val: String(level),
-                      },
-                      { k: "best", name: "Best Level", val: String(bestLevel) },
-                      {
-                        k: "speed",
-                        name: "Avg Speed",
-                        val: formatSpeed(avgMsPerPick),
-                      },
-                    ].map((s) => (
-                      <div
-                        key={s.k}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 10,
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.14)",
-                          minWidth: 120,
-                        }}
-                      >
-                        <div style={{ fontSize: 11, opacity: 0.85 }}>
-                          {s.name}
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 800 }}>
-                          {s.val}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Actions */}
-                  <div
-                    style={{
-                      marginTop: 16,
-                      display: "flex",
-                      gap: 12,
-                      justifyContent: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <button
-                      onClick={restart}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        border: "1px solid rgba(59,130,246,0.55)",
-                        background: "rgba(59,130,246,0.18)",
-                        color: "white",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        boxShadow: "0 6px 24px rgba(59,130,246,0.35)",
-                      }}
-                      aria-label="Restart"
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </section>
       </main>
