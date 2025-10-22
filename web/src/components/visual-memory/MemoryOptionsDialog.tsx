@@ -58,19 +58,19 @@ const Button: React.FC<
     transform: disabled
       ? "none"
       : hover
-      ? active
-        ? "translateY(-1px)"
-        : "translateY(-2px)"
-      : "translateY(0)",
+        ? active
+          ? "translateY(-1px)"
+          : "translateY(-2px)"
+        : "translateY(0)",
     opacity: disabled ? 0.6 : 1,
     background: disabled ? "rgba(255,255,255,0.06)" : buttonBase.background,
     boxShadow: disabled
       ? "none"
       : active
-      ? "0 10px 24px rgba(0,0,0,0.40)"
-      : hover
-      ? "0 12px 28px rgba(0,0,0,0.45)"
-      : "0 8px 20px rgba(0,0,0,0.35)",
+        ? "0 10px 24px rgba(0,0,0,0.40)"
+        : hover
+          ? "0 12px 28px rgba(0,0,0,0.45)"
+          : "0 8px 20px rgba(0,0,0,0.35)",
     ...style,
   };
 
@@ -108,13 +108,21 @@ const Button: React.FC<
 // icons
 const IconEye: React.FC = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" stroke="currentColor" strokeWidth="1.6" />
+    <path
+      d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
     <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.6" />
   </svg>
 );
 const IconBolt: React.FC = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-    <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" stroke="currentColor" strokeWidth="1.6" />
+    <path
+      d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
   </svg>
 );
 const IconBanana: React.FC = () => (
@@ -126,14 +134,23 @@ const IconBanana: React.FC = () => (
 const Icon123: React.FC = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
     <path d="M5 16V8l-2 2" stroke="currentColor" strokeWidth="1.6" />
-    <path d="M10 16c2 0 3-3 0-3 3 0 2-3 0-3" stroke="currentColor" strokeWidth="1.6" />
+    <path
+      d="M10 16c2 0 3-3 0-3 3 0 2-3 0-3"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
     <path d="M18 16h-3l3-4h-3" stroke="currentColor" strokeWidth="1.6" />
   </svg>
 );
 // NEW: Close icon
 const IconX: React.FC = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path
+      d="M6 6l12 12M18 6L6 18"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -162,32 +179,34 @@ export default function MemoryOptionsDialog({ open, onOpenChange }: Props) {
         </Button>
 
         <Button
-  leading={<IconBolt />}
-  onClick={() => {
-    onOpenChange(false);
-    navigate("/sequence");
-  }}
-  aria-label="Start Sequence Memory"
->
-  Sequence Memory
-</Button>
+          leading={<IconBolt />}
+          onClick={() => {
+            onOpenChange(false);
+            navigate("/sequence");
+          }}
+          aria-label="Start Sequence Memory"
+        >
+          Sequence Memory
+        </Button>
 
         <Button
-  leading={<IconBanana />}
-  onClick={() => {
-    onOpenChange(false);
-    navigate("/chimp");
-  }}
-  aria-label="Start Chimp Test"
->
-  Chimp Test
-</Button>
+          leading={<IconBanana />}
+          onClick={() => {
+            onOpenChange(false);
+            navigate("/chimp");
+          }}
+          aria-label="Start Chimp Test"
+        >
+          Chimp Test
+        </Button>
 
         <Button
           leading={<Icon123 />}
-          disabled
-          aria-label="Number Memory (coming soon)"
-          title="Coming soon"
+          onClick={() => {
+            onOpenChange(false);
+            navigate("/number");
+          }}
+          aria-label="Start Number Memory"
         >
           Number Memory
         </Button>
@@ -197,7 +216,11 @@ export default function MemoryOptionsDialog({ open, onOpenChange }: Props) {
           leading={<IconX />}
           onClick={() => onOpenChange(false)}
           aria-label="Close dialog"
-          style={{ background: "rgba(255,255,255,0.06)", boxShadow: "none", fontWeight: 600 }}
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            boxShadow: "none",
+            fontWeight: 600,
+          }}
         >
           Close
         </Button>

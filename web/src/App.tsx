@@ -4,8 +4,9 @@ import SudokuPage from "./pages/SudokuPage";
 import KillerSudokuPage from "./pages/KillerSudokuPage";
 import VisualMemoryPage from "./pages/VisualMemoryPage";
 import SequenceMemoryPage from "./pages/SequenceMemoryPage";
-// ⬇️ NEW
 import ChimpTestPage from "./pages/ChimpTestPage";
+// ⬇️ NEW
+import NumberMemoryPage from "./pages/NumberMemoryPage";
 
 export default function App() {
   return (
@@ -15,8 +16,9 @@ export default function App() {
       <Route path="/killer" element={<KillerSudokuPage />} />
       <Route path="/memory" element={<VisualMemoryPage />} />
       <Route path="/sequence" element={<SequenceMemoryPage />} />
-      {/* ⬇️ NEW */}
       <Route path="/chimp" element={<ChimpTestPage />} />
+      {/* ⬇️ NEW */}
+      <Route path="/number" element={<NumberMemoryPage />} />
     </Routes>
   );
 }
