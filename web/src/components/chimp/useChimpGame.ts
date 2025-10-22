@@ -26,6 +26,19 @@ export function useChimpGame(gridSize = 6) {
   const [nextExpected, setNextExpected] = React.useState(1);
   const [roundId, setRoundId] = React.useState(0); // ▶️ identifies a specific layout so positions stay stable
 
+  // 🕒 avg speed tracking (ms per pick)
+  const [avgMsPerPick, setAvgMsPerPick] = React.useState<number | null>(null);
+  const pickRef = React.useRef<{ last: number | null; total: number; count: number }>({
+    last: null,
+    total: 0,
+    count: 0,
+  });
+  const nowMs = () =>
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+
+      
   function shuffle<T>(arr: T[]): T[] {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -37,6 +50,11 @@ export function useChimpGame(gridSize = 6) {
 
   function planCountForLevel(lv: number) {
     return Math.min(gridSize * gridSize, 4 + lv);
+  }
+
+  function resetTiming() {
+    pickRef.current = { last: null, total: 0, count: 0 };
+    setAvgMsPerPick(null);
   }
 
   function prepareRound(lv = level) {
@@ -59,6 +77,7 @@ export function useChimpGame(gridSize = 6) {
     setCells(withNumbers);
     setNextExpected(1);
     setClearedNumbers([]);
+    resetTiming();
     setRoundId((r) => r + 1); // ▶️ new layout -> new seed for positions
   }
 
@@ -76,6 +95,7 @@ export function useChimpGame(gridSize = 6) {
     setCells([]);
     setNextExpected(1);
     setClearedNumbers([]);
+    resetTiming();
     setRoundId((r) => r + 1);
   }
 
@@ -91,14 +111,19 @@ export function useChimpGame(gridSize = 6) {
 
     if (phase === "show") {
       if (cell.number === 1) {
-        setPhase("input"); // ▶️ after clicking 1, hide numbers (ChimpBoard will render blanks)
+        // ▶️ after clicking 1, hide numbers (ChimpBoard will render blanks)
+        setPhase("input");
         setNextExpected(2);
         setClearedNumbers([1]);
+        // start timing from here
+        pickRef.current = { last: nowMs(), total: 0, count: 0 };
+        setAvgMsPerPick(null);
       }
       return;
     }
     if (phase !== "input") return;
 
+    // wrong pick
     if (cell.number !== nextExpected) {
       setHearts((h) => {
         const nh = h - 1;
@@ -113,6 +138,15 @@ export function useChimpGame(gridSize = 6) {
       });
       return;
     }
+
+    // correct pick
+    const t = nowMs();
+    const last = pickRef.current.last ?? t;
+    const dt = t - last;
+    pickRef.current.total += dt;
+    pickRef.current.count += 1;
+    pickRef.current.last = t;
+    setAvgMsPerPick(pickRef.current.total / pickRef.current.count);
 
     setClearedNumbers((prev) =>
       prev.includes(cell.number!) ? prev : [...prev, cell.number!]
@@ -143,7 +177,8 @@ export function useChimpGame(gridSize = 6) {
     count,
     nextExpected,
     roundId,
-    clearedNumbers, // 👈 expose
+    clearedNumbers,
+    avgMsPerPick, // 👈 expose
     start,
     restart,
     nextLevel,
