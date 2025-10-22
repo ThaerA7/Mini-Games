@@ -173,13 +173,15 @@ export default function MemoryOptionsDialog({ open, onOpenChange }: Props) {
 </Button>
 
         <Button
-          leading={<IconBanana />}
-          disabled
-          aria-label="Chimp Test (coming soon)"
-          title="Coming soon"
-        >
-          Chimp Test
-        </Button>
+  leading={<IconBanana />}
+  onClick={() => {
+    onOpenChange(false);
+    navigate("/chimp");
+  }}
+  aria-label="Start Chimp Test"
+>
+  Chimp Test
+</Button>
 
         <Button
           leading={<Icon123 />}
