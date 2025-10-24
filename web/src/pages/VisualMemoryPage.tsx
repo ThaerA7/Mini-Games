@@ -1,8 +1,8 @@
 // src/pages/VisualMemoryPage.tsx
 import React from "react";
 import TopBar from "../components/TopBar";
-import GameBoard from "../components/visual-memory/GameBoard";
-import { useVisualMemoryGame } from "../components/visual-memory/useVisualMemoryGame";
+import GameBoard from "../components/guess-games/visual-memory/GameBoard";
+import { useVisualMemoryGame } from "../components/guess-games/visual-memory/useVisualMemoryGame";
 
 export default function VisualMemoryPage() {
   const {
@@ -209,148 +209,164 @@ export default function VisualMemoryPage() {
               />
 
               {(showStartOverlay || showLostOverlay) && (
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      display: "grid",
-      placeItems: "center",
-      pointerEvents: "auto",
-    }}
-  >
-    {showStartOverlay ? (
-      <Button
-        onClick={startRun}
-        style={{ height: 56, padding: "0 24px", fontSize: 22 }}
-      >
-        Start
-      </Button>
-    ) : (
-      // === Same dialog as SequenceMemory ===
-      <div
-        role="dialog"
-        aria-label="Visual Memory - level failed"
-        style={{
-          textAlign: "center",
-          padding: "22px 20px",
-          borderRadius: 16,
-          background: "rgba(2,6,23,0.86)",
-          border: "1px solid rgba(255,255,255,0.14)",
-          boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
-          width: "min(520px, 92%)",
-          color: "rgba(255,255,255,0.95)",
-        }}
-      >
-        {/* Badge */}
-        <div
-          style={{
-            width: 72,
-            height: 72,
-            margin: "0 auto 10px",
-            borderRadius: "50%",
-            display: "grid",
-            placeItems: "center",
-            background:
-              "conic-gradient(from 0deg, rgba(239,68,68,0.9), rgba(147,51,234,0.9), rgba(239,68,68,0.9))",
-            boxShadow: "0 8px 30px rgba(239,68,68,0.35)",
-          }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: "50%",
-              display: "grid",
-              placeItems: "center",
-              background: "#0b1220",
-              border: "1px solid rgba(255,255,255,0.18)",
-              fontSize: 34,
-              fontWeight: 900,
-            }}
-            aria-hidden
-          >
-            ✕
-          </div>
-        </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    placeItems: "center",
+                    pointerEvents: "auto",
+                  }}
+                >
+                  {showStartOverlay ? (
+                    <Button
+                      onClick={startRun}
+                      style={{ height: 56, padding: "0 24px", fontSize: 22 }}
+                    >
+                      Start
+                    </Button>
+                  ) : (
+                    // === Same dialog as SequenceMemory ===
+                    <div
+                      role="dialog"
+                      aria-label="Visual Memory - level failed"
+                      style={{
+                        textAlign: "center",
+                        padding: "22px 20px",
+                        borderRadius: 16,
+                        background: "rgba(2,6,23,0.86)",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
+                        width: "min(520px, 92%)",
+                        color: "rgba(255,255,255,0.95)",
+                      }}
+                    >
+                      {/* Badge */}
+                      <div
+                        style={{
+                          width: 72,
+                          height: 72,
+                          margin: "0 auto 10px",
+                          borderRadius: "50%",
+                          display: "grid",
+                          placeItems: "center",
+                          background:
+                            "conic-gradient(from 0deg, rgba(239,68,68,0.9), rgba(147,51,234,0.9), rgba(239,68,68,0.9))",
+                          boxShadow: "0 8px 30px rgba(239,68,68,0.35)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: "50%",
+                            display: "grid",
+                            placeItems: "center",
+                            background: "#0b1220",
+                            border: "1px solid rgba(255,255,255,0.18)",
+                            fontSize: 34,
+                            fontWeight: 900,
+                          }}
+                          aria-hidden
+                        >
+                          ✕
+                        </div>
+                      </div>
 
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 900,
-            letterSpacing: 0.2,
-          }}
-        >
-          Level Failed
-        </div>
-        <div style={{ opacity: 0.85, marginTop: 4, fontSize: 13 }}>
-          Keep going — you’ve got this!
-        </div>
+                      <div
+                        style={{
+                          fontSize: 28,
+                          fontWeight: 900,
+                          letterSpacing: 0.2,
+                        }}
+                      >
+                        Level Failed
+                      </div>
+                      <div
+                        style={{ opacity: 0.85, marginTop: 4, fontSize: 13 }}
+                      >
+                        Keep going — you’ve got this!
+                      </div>
 
-        {/* Stats — mirror Sequence dialog (3 items) */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: 10,
-            marginTop: 14,
-            flexWrap: "wrap",
-          }}
-        >
-          {[
-            { k: "level", name: "Current Level", val: String(level) },
-            { k: "best", name: "Best Level", val: String(stats.bestLevel) },
-            { k: "grid", name: "Grid Size", val: `${gridSize}×${gridSize}` },
-          ].map((s) => (
-            <div
-              key={s.k}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.14)",
-                minWidth: 120,
-              }}
-            >
-              <div style={{ fontSize: 11, opacity: 0.85 }}>{s.name}</div>
-              <div style={{ fontSize: 16, fontWeight: 800 }}>{s.val}</div>
-            </div>
-          ))}
-        </div>
+                      {/* Stats — mirror Sequence dialog (3 items) */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          gap: 10,
+                          marginTop: 14,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {[
+                          {
+                            k: "level",
+                            name: "Current Level",
+                            val: String(level),
+                          },
+                          {
+                            k: "best",
+                            name: "Best Level",
+                            val: String(stats.bestLevel),
+                          },
+                          {
+                            k: "grid",
+                            name: "Grid Size",
+                            val: `${gridSize}×${gridSize}`,
+                          },
+                        ].map((s) => (
+                          <div
+                            key={s.k}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 10,
+                              background: "rgba(255,255,255,0.06)",
+                              border: "1px solid rgba(255,255,255,0.14)",
+                              minWidth: 120,
+                            }}
+                          >
+                            <div style={{ fontSize: 11, opacity: 0.85 }}>
+                              {s.name}
+                            </div>
+                            <div style={{ fontSize: 16, fontWeight: 800 }}>
+                              {s.val}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
 
-        {/* Actions */}
-        <div
-          style={{
-            marginTop: 16,
-            display: "flex",
-            gap: 12,
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            onClick={restartRun}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 10,
-              border: "1px solid rgba(59,130,246,0.55)",
-              background: "rgba(59,130,246,0.18)",
-              color: "white",
-              fontWeight: 800,
-              cursor: "pointer",
-              boxShadow: "0 6px 24px rgba(59,130,246,0.35)",
-            }}
-            aria-label="Restart"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-)}
-
-
+                      {/* Actions */}
+                      <div
+                        style={{
+                          marginTop: 16,
+                          display: "flex",
+                          gap: 12,
+                          justifyContent: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <button
+                          onClick={restartRun}
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            border: "1px solid rgba(59,130,246,0.55)",
+                            background: "rgba(59,130,246,0.18)",
+                            color: "white",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            boxShadow: "0 6px 24px rgba(59,130,246,0.35)",
+                          }}
+                          aria-label="Restart"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* This section no longer lives inside the animated container */}

@@ -1,8 +1,8 @@
 // src/pages/SequenceMemoryPage.tsx
 import React from "react";
 import TopBar from "../components/TopBar";
-import SequenceGameBoard from "../components/sequence-memory/SequenceGameBoard";
-import { useSequenceMemoryGame } from "../components/sequence-memory/useSequenceMemoryGame";
+import SequenceGameBoard from "../components/guess-games/sequence-memory/SequenceGameBoard";
+import { useSequenceMemoryGame } from "../components/guess-games/sequence-memory/useSequenceMemoryGame";
 
 export default function SequenceMemoryPage() {
   const {

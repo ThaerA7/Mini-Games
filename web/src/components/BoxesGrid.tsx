@@ -2,7 +2,7 @@
 import React from 'react'
 import SudokuOptionsDialog from './sudoku/SudokuOptionsDialog'
 import SudokuImg from '../assets/Sudoku.png'
-import MemoryOptionsDialog from './visual-memory/MemoryOptionsDialog.tsx'
+import MemoryOptionsDialog from './guess-games/visual-memory/MemoryOptionsDialog.tsx'
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'extreme' | '16x16'
 
