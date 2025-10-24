@@ -1,7 +1,7 @@
 import * as React from "react";
 import TopBar from "../components/TopBar";
-import NumberMemoryBoard from "../components/guess-games/number-memory/NumberMemoryBoard";
-import { useNumberMemory } from "../components/guess-games/number-memory/useNumberMemory";
+import NumberMemoryBoard from "../components/memory-games/number-memory/NumberMemoryBoard";
+import { useNumberMemory } from "../components/memory-games/number-memory/useNumberMemory";
 
 const REVEAL_MS = 3000;
 
