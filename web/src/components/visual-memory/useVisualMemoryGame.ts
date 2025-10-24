@@ -1,3 +1,4 @@
+// src/components/visual-memory/useVisualMemoryGame.ts
 import React from "react";
 import type { Phase } from "./GameBoard";
 
@@ -12,28 +13,19 @@ const HEARTS_INITIAL = 3;
 
 // === Grid & pattern rules ===
 const GRID_MIN = 3;
-const GRID_MAX = 17;
+// allow going far beyond 20x20 if someone gets that far ;)
+const GRID_MAX = 99;
 const MAX_PATTERN_RATIO = 0.6; // cap white squares at 60%
 
-// First two grid sizes (3x3, 4x4) repeat 3 times; 5x5 and larger repeat 5 times
-const playsPerSizeForGrid = (g: number) => (g <= 4 ? 3 : 5);
+// Repeats per grid size:
+// - 3x3 repeats 3 times (3,4,5)
+// - 4x4 and larger repeat 5 times (N, N+1, N+2, N+3, N+4)
+const playsPerSizeForGrid = (g: number) => (g === 3 ? 3 : 5);
 
-// Base white squares:
-// - 3x3 & 4x4 start at 3
-// - 5x5 and larger START AT 5 (and add +1 each completion within that size)
-const basePatternCountForGrid = (g: number) => {
-  // Ordinal mapping by grid order (1st=3x3):
-  // 1→3, 2→4, 3→5, 4→6, and from 5th onward base = ordinal+1
-  // Works for any grid size ≥ 3.
-  const ordinal = g - 2; // 3x3→1, 4x4→2, 5x5→3, 6x6→4, ...
-  if (ordinal === 1) return 3;
-  if (ordinal === 2) return 4;
-  if (ordinal === 3) return 5;
-  if (ordinal === 4) return 6;
-  return ordinal + 1;
-};
+// Base white squares for an N×N grid start at N.
+const basePatternCountForGrid = (g: number) => g;
 
-// Hearts rule:
+// Hearts rule (unchanged):
 // - 3x3 & 4x4: 1 mistake => lose a heart
 // - 5x5 and larger: 3 mistakes => lose a heart
 const mistakesPerHeartForGrid = (g: number) => (g <= 4 ? 1 : 3);
@@ -190,10 +182,7 @@ export function useVisualMemoryGame() {
           setPhase("won");
           setStats((s) => ({ ...s, bestLevel: Math.max(s.bestLevel, level) }));
 
-          // Progression per rules:
-          // - stay on same grid size for N plays (N=3 for <=4x4, else N=5)
-          // - after each success within same size: patternCount += 1
-          // - when advancing to next size: reset patternCount to basePatternCountForGrid(nextSize)
+          // Progression per rules described above
           const currentSize = gridSize;
           const currentRepeat = repeatAtSize;
           const currentCount = patternCount;
@@ -205,11 +194,11 @@ export function useVisualMemoryGame() {
           let nextCount = currentCount;
 
           if (currentRepeat < totalPlaysForSize - 1) {
-            // Repeat same size: add +1 white square, capped by ratio
+            // Repeat same size: +1 white square (capped by ratio)
             nextRepeat = currentRepeat + 1;
             nextCount = clampPattern(currentSize, currentCount + 1);
           } else {
-            // Advance size: reset repeat counter and set base count for the NEW size
+            // Advance size: reset repeat counter and base count = next grid size
             nextSize = Math.min(currentSize + 1, GRID_MAX);
             nextRepeat = 0;
             nextCount = basePatternCountForGrid(nextSize);
