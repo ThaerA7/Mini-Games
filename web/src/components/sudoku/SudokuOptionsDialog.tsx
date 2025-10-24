@@ -3,7 +3,13 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import Dialog from "../sudoku/SudokuDialog.tsx";
 
-export type Difficulty = "easy" | "medium" | "hard" | "expert" | "extreme" | "16x16";
+export type Difficulty =
+  | "easy"
+  | "medium"
+  | "hard"
+  | "expert"
+  | "extreme"
+  | "16x16";
 
 type Props = {
   open: boolean;
@@ -20,88 +26,123 @@ function useUIButtonFont() {
       link.id = id;
       link.rel = "stylesheet";
       link.href =
-        "https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap";
+        "https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap";
       document.head.appendChild(link);
     }
   }, []);
 }
 
+// --- MemoryOptionsDialog-like Button ---
 const buttonBase: React.CSSProperties = {
   width: "100%",
-  padding: "14px 16px",
+  padding: "14px 14px",
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.12)",
-  fontSize: 18,
+  fontSize: 16,
+  fontWeight: 700,
   fontFamily:
-    '"Orbitron","Audiowide","Russo One",system-ui,Segoe UI,Roboto,sans-serif',
+    "'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji'",
   color: "white",
   cursor: "pointer",
   userSelect: "none",
   outline: "none",
-  display: "inline-flex",
+  display: "grid",
+  gridTemplateColumns: "28px 1fr",
   alignItems: "center",
-  justifyContent: "center",
-  gap: 8,
-  transition: "transform 120ms ease, box-shadow 120ms ease",
+  gap: 12,
+  transition:
+    "transform 120ms ease, box-shadow 120ms ease, background 150ms ease, opacity .2s ease",
   willChange: "transform",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06))",
+  boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
 };
 
-type FloatingButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  bg: string;
-};
-
-function FloatingButton({
-  bg,
-  style,
-  onMouseEnter,
-  onMouseLeave,
-  onMouseDown,
-  onMouseUp,
-  ...rest
-}: FloatingButtonProps) {
+const Button: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { leading?: React.ReactNode }
+> = ({ leading, style, disabled, children, ...rest }) => {
   const [hover, setHover] = React.useState(false);
   const [active, setActive] = React.useState(false);
 
-  const baseShadow = "0 8px 20px rgba(0,0,0,0.35)";
-  const hoverShadow = "0 12px 28px rgba(0,0,0,0.45)";
-  const activeShadow = "0 10px 24px rgba(0,0,0,0.40)";
-
-  const combinedStyle: React.CSSProperties = {
+  const combined: React.CSSProperties = {
     ...buttonBase,
-    background: bg,
-    transform: hover ? (active ? "translateY(-1px)" : "translateY(-2px)") : "translateY(0)",
-    boxShadow: active ? activeShadow : hover ? hoverShadow : baseShadow,
+    transform: disabled
+      ? "none"
+      : hover
+      ? active
+        ? "translateY(-1px)"
+        : "translateY(-2px)"
+      : "translateY(0)",
+    opacity: disabled ? 0.6 : 1,
+    background: disabled ? "rgba(255,255,255,0.06)" : buttonBase.background,
+    boxShadow: disabled
+      ? "none"
+      : active
+      ? "0 10px 24px rgba(0,0,0,0.40)"
+      : hover
+      ? "0 12px 28px rgba(0,0,0,0.45)"
+      : "0 8px 20px rgba(0,0,0,0.35)",
     ...style,
   };
 
   return (
     <button
       {...rest}
-      style={combinedStyle}
+      style={combined}
+      disabled={disabled}
       onMouseEnter={(e) => {
         setHover(true);
-        onMouseEnter?.(e);
+        rest.onMouseEnter?.(e);
       }}
       onMouseLeave={(e) => {
         setHover(false);
         setActive(false);
-        onMouseLeave?.(e);
+        rest.onMouseLeave?.(e);
       }}
       onMouseDown={(e) => {
         setActive(true);
-        onMouseDown?.(e);
+        rest.onMouseDown?.(e);
       }}
       onMouseUp={(e) => {
         setActive(false);
-        onMouseUp?.(e);
+        rest.onMouseUp?.(e);
       }}
-    />
+    >
+      <span aria-hidden style={{ display: "grid", placeItems: "center" }}>
+        {leading}
+      </span>
+      <span style={{ textAlign: "left" }}>{children}</span>
+    </button>
   );
-}
+};
 
-const startNewColor = "#16a34a";
-const continueColor = "#3b82f6";
-const closeColor = "#4b5563";
+// --- Simple icons to match style ---
+const IconPlay: React.FC = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path d="M8 5l10 7-10 7V5z" stroke="currentColor" strokeWidth="1.6" />
+  </svg>
+);
+const IconRotate: React.FC = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path
+      d="M20 12a8 8 0 10-3 6.3M20 12V6m0 6h-6"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+const IconX: React.FC = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path
+      d="M6 6l12 12M18 6L6 18"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 
 export default function SudokuOptionsDialog({
   open,
@@ -125,13 +166,10 @@ export default function SudokuOptionsDialog({
   const sixteens: Difficulty = "16x16";
 
   const stack: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
+    display: "grid",
     gap: 12,
     marginTop: 20,
   };
-
-  const startNewWrap: React.CSSProperties = { position: "relative" };
 
   // Scrollable dropdown
   const menu: React.CSSProperties = {
@@ -162,9 +200,10 @@ export default function SudokuOptionsDialog({
     background: "rgba(255,255,255,0.06)",
     color: "white",
     cursor: "pointer",
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: 600,
     fontFamily:
-      '"Poppins", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
+      "'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji'",
   };
 
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -179,15 +218,16 @@ export default function SudokuOptionsDialog({
       title="Sudoku"
     >
       <div style={stack}>
-        <div style={startNewWrap}>
-          <FloatingButton
-            bg={startNewColor}
+        {/* Start New with dropdown */}
+        <div style={{ position: "relative" }}>
+          <Button
+            leading={<IconPlay />}
             onClick={() => setMenuOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
           >
             Start New ▾
-          </FloatingButton>
+          </Button>
 
           {menuOpen && (
             <div role="menu" style={menu}>
@@ -242,21 +282,28 @@ export default function SudokuOptionsDialog({
           )}
         </div>
 
-        <FloatingButton
-          bg={continueColor}
+        {/* Continue */}
+        <Button
+          leading={<IconRotate />}
           onClick={() => {
             onContinue();
             onOpenChange(false);
-            const last = localStorage.getItem("sudoku:difficulty") || "Medium";
+            const last = localStorage.getItem("sudoku:difficulty") || "medium";
             navigate("/sudoku", { state: { difficulty: last } });
           }}
         >
           Continue
-        </FloatingButton>
+        </Button>
 
-        <FloatingButton bg={closeColor} onClick={() => onOpenChange(false)}>
+        {/* Close */}
+        <Button
+          leading={<IconX />}
+          onClick={() => onOpenChange(false)}
+          aria-label="Close dialog"
+          style={{ background: "rgba(255,255,255,0.06)", boxShadow: "none", fontWeight: 600 }}
+        >
           Close
-        </FloatingButton>
+        </Button>
       </div>
     </Dialog>
   );
