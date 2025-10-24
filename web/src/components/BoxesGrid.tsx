@@ -1,5 +1,6 @@
 // src/components/BoxesGrid.tsx
 import React from "react";
+import { useNavigate } from 'react-router-dom'
 import SudokuOptionsDialog from "./sudoku/SudokuOptionsDialog";
 import SudokuImg from "../assets/Sudoku.png";
 import MemoryOptionsDialog from "./memory-games/visual-memory/MemoryOptionsDialog.tsx";
@@ -17,6 +18,7 @@ export default function BoxesGrid() {
   const [pressedIndex, setPressedIndex] = React.useState<number | null>(null);
   const [sudokuOpen, setSudokuOpen] = React.useState(false);
   const [memoryOpen, setMemoryOpen] = React.useState(false);
+const navigate = useNavigate(); 
 
   const baseBoxStyle: React.CSSProperties = {
     aspectRatio: "1 / 1",
@@ -53,14 +55,8 @@ export default function BoxesGrid() {
   };
 
   return (
-    <section style={{ width: "100%", padding: 20 }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
-          gap: 20,
-        }}
-      >
+     <section style={{ width: '100%', padding: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20 }}>
         {boxes.map((_, i) => {
           if (i === 0) {
             // Sudoku tile with image
@@ -145,7 +141,31 @@ export default function BoxesGrid() {
               </div>
             );
           }
-
+if (i === 2) {
+            // ⬇️ NEW: Guess the Flag launcher tile (third grid)
+            return (
+              <div
+                key="flag-guess"
+                style={{
+                  ...getBoxStyle(pressedIndex === i),
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+                onPointerDown={() => handlePointerDown(i)}
+                onPointerUp={clearPress}
+                onPointerLeave={clearPress}
+                onPointerCancel={clearPress}
+                onClick={() => navigate('/flags')}
+                aria-label="Open Guess the Country Flag"
+              >
+                <div style={{ textAlign: 'center', padding: '0 8px', lineHeight: 1.15 }}>
+                  <div style={{ fontSize: 32, marginBottom: 6 }}>🚩</div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>Guess the</div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>Country Flag</div>
+                </div>
+              </div>
+            )
+          }
           // Placeholder / future games tiles
           return (
             <div

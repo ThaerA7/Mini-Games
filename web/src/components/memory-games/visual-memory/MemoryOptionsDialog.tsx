@@ -1,7 +1,7 @@
 // src/components/memory/MemoryOptionsDialog.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Dialog from "../sudoku/SudokuDialog.tsx";
+import Dialog from "../../sudoku/SudokuDialog";
 
 function useUIButtonFont() {
   React.useEffect(() => {
