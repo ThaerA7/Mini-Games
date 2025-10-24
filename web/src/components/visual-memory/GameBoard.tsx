@@ -1,3 +1,4 @@
+// src/components/visual-memory/GameBoard.tsx
 import React from "react";
 
 export type Phase = "idle" | "show" | "guess" | "won" | "lost";
@@ -24,7 +25,7 @@ export default function GameBoard({
   const count = gridSize * gridSize;
   const isShowing = phase === "show";
 
-  // ——— NEW: guard animations on first paint of a new grid
+  // ——— Guard animations on first paint of a new grid
   const [mountReady, setMountReady] = React.useState(false);
   const [revealActive, setRevealActive] = React.useState(false);
   const raf1 = React.useRef<number | null>(null);
@@ -90,8 +91,8 @@ export default function GameBoard({
     aspectRatio: "1 / 1",
     borderRadius: 10,
     perspective: "700px",
-    isolation: "isolate", // NEW: isolate each cell’s stacking context
-    contain: "paint", // NEW: prevent cross-cell repaints
+    isolation: "isolate",
+    contain: "paint",
   };
 
   return (
@@ -99,7 +100,8 @@ export default function GameBoard({
       key={`${gridSize}-${patternKey}`}
       ref={containerRef}
       style={{
-        width: "min(92vw, 640px)",
+        // Match Sequence board width cap
+        width: "min(94vw, 800px)",
         margin: "0 auto",
         display: "grid",
         gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
@@ -119,6 +121,7 @@ export default function GameBoard({
         // Flip only once the reveal is active; otherwise keep front up.
         const flipped = isShowing && revealActive && isInPattern;
         const backVisible = flipped;
+
         return (
           <div
             key={i}
@@ -140,7 +143,7 @@ export default function GameBoard({
                 width: "100%",
                 height: "100%",
                 transformStyle: "preserve-3d",
-                transform: "rotateY(0deg) translateZ(0)", // stable base; promote to its own layer
+                transform: "rotateY(0deg) translateZ(0)",
                 transition:
                   "transform 420ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms ease, filter 180ms ease",
                 willChange: "transform",
@@ -157,7 +160,7 @@ export default function GameBoard({
                   background: "rgba(255,255,255,0.06)",
                   backfaceVisibility: "hidden",
                   WebkitBackfaceVisibility: "hidden",
-                  transform: "translateZ(0.001px)", // avoid z-fighting flashes on some GPUs
+                  transform: "translateZ(0.001px)",
                   transition: mountReady
                     ? "background 180ms ease, box-shadow 180ms ease"
                     : "none",
@@ -179,7 +182,7 @@ export default function GameBoard({
                     ? "0 0 0 2px rgba(255,255,255,0.18) inset"
                     : "none",
                   visibility: backVisible ? "visible" : "hidden",
-                  opacity: backVisible ? 1 : 0, // belt & suspenders
+                  opacity: backVisible ? 1 : 0,
                   transition: "opacity 120ms linear",
                 }}
               />

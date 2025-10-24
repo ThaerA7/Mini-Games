@@ -1,3 +1,4 @@
+// src/pages/VisualMemoryPage.tsx
 import React from "react";
 import TopBar from "../components/TopBar";
 import GameBoard from "../components/visual-memory/GameBoard";
@@ -61,7 +62,7 @@ export default function VisualMemoryPage() {
       .vm-btn:active { transform: translateY(0) scale(.985); }
       .vm-btn:disabled { opacity: .65; cursor: not-allowed; }
 
-    /* Grid/Button divider */
+      /* Grid/Button divider */
       .vm-divider {
         height: 1px;
         margin: 12px 0 10px;
@@ -135,7 +136,8 @@ export default function VisualMemoryPage() {
   return (
     <div
       style={{
-        minHeight: "100dvh",
+        // MATCH SequenceMemoryPage
+        minHeight: "50dvh",
         background: "#0b1020",
         color: "#e5e7eb",
         display: "flex",
@@ -145,13 +147,18 @@ export default function VisualMemoryPage() {
     >
       <TopBar />
       <main
+        // MATCH SequenceMemoryPage
         style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}
       >
         <section
-          style={{ width: "min(960px, 100%)", display: "grid", gap: 16 }}
+          // MATCH SequenceMemoryPage outer cap
+          style={{ width: "min(1040px, 100%)", display: "grid", gap: 16 }}
         >
           {/* HEADER */}
-          <div style={{ width: "min(92vw, 640px)", margin: "0 auto" }}>
+          <div
+            // MATCH SequenceMemoryPage inner cap
+            style={{ width: "min(94vw, 800px)", margin: "0 auto" }}
+          >
             <div
               style={{
                 display: "grid",
@@ -178,8 +185,9 @@ export default function VisualMemoryPage() {
 
           {/* BOARD SHELL: width + centering only */}
           <div
+            // MATCH SequenceMemoryPage inner cap
             style={{
-              width: "min(92vw, 640px)",
+              width: "min(94vw, 800px)",
               margin: "0 auto",
             }}
           >
