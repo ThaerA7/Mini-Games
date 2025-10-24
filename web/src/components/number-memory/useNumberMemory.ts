@@ -1,6 +1,6 @@
 import * as React from "react";
 
-export type Phase = "idle" | "show" | "input" | "won" | "lost";
+export type Phase = "idle" | "show" | "input" | "won" | "lost" | "wrong";
 
 const BEST_KEY = "number_best_level";
 const REVEAL_MS_DEFAULT = 3000;
@@ -33,7 +33,7 @@ export function useNumberMemory(revealMs: number = REVEAL_MS_DEFAULT) {
     [makeNumber, revealMs]
   );
 
-  // 3s countdown while showing number
+  // countdown while showing number
   React.useEffect(() => {
     if (phase !== "show") return;
     let raf = 0;
@@ -88,10 +88,21 @@ export function useNumberMemory(revealMs: number = REVEAL_MS_DEFAULT) {
     } else {
       setHearts((h) => {
         const nh = h - 1;
-        if (nh <= 0) setPhase("lost");
-        else prepareRound(level); // retry same level
+        if (nh <= 0) {
+          setPhase("lost");
+        } else {
+          // Show a dialog; user can manually retry same level.
+          setPhase("wrong");
+        }
         return nh;
       });
+    }
+  }
+
+  // Called from the "wrong" dialog to retry the same level.
+  function continueAfterWrong() {
+    if (phase === "wrong") {
+      prepareRound(level);
     }
   }
 
@@ -106,5 +117,6 @@ export function useNumberMemory(revealMs: number = REVEAL_MS_DEFAULT) {
     restart,
     nextLevel,
     submit,
+    continueAfterWrong,
   };
 }

@@ -111,7 +111,7 @@ export default function SequenceMemoryPage() {
   return (
     <div
       style={{
-        minHeight: "100dvh",
+        minHeight: "50dvh",
         background: "#0b1020",
         color: "#e5e7eb",
         display: "flex",

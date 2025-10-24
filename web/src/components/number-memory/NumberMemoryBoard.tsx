@@ -27,7 +27,8 @@ export default function NumberMemoryBoard({
   }, [phase]);
 
   const container: React.CSSProperties = {
-    width: "min(94vw, 800px)",
+    width: "100%",
+
     height: 360,
     margin: "0 auto",
     position: "relative",

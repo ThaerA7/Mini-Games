@@ -17,7 +17,11 @@ export default function NumberMemoryPage() {
     restart,
     nextLevel,
     submit,
+    continueAfterWrong,
   } = useNumberMemory(REVEAL_MS);
+
+  const [restartPressed, setRestartPressed] = React.useState(false);
+  const [restartDlgPressed, setRestartDlgPressed] = React.useState(false);
 
   const baseBtn: React.CSSProperties = {
     fontFamily:
@@ -37,6 +41,15 @@ export default function NumberMemoryPage() {
       "0 6px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.08)",
     transition:
       "transform .15s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease",
+  };
+
+  const pressedStyles: React.CSSProperties = {
+    transform: "translateY(1px) scale(0.985)",
+    boxShadow:
+      "0 3px 10px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.06)",
+    background:
+      "linear-gradient(180deg, rgba(160, 8, 8, 0.12), rgba(255,255,255,.06))",
+    opacity: 0.98,
   };
 
   const renderHearts = (n: number) => {
@@ -61,7 +74,11 @@ export default function NumberMemoryPage() {
     );
   };
 
-  const showOverlay = phase === "idle" || phase === "won" || phase === "lost";
+  const showOverlay =
+    phase === "idle" ||
+    phase === "won" ||
+    phase === "lost" ||
+    phase === "wrong";
 
   return (
     <div
@@ -95,7 +112,9 @@ export default function NumberMemoryPage() {
               <div style={{ justifySelf: "start", fontWeight: 700 }}>
                 Current Level: {level}
               </div>
-              <div style={{ justifySelf: "center" }}>{renderHearts(hearts)}</div>
+              <div style={{ justifySelf: "center" }}>
+                {renderHearts(hearts)}
+              </div>
               <div style={{ justifySelf: "end", fontWeight: 700 }}>
                 Best Level: {bestLevel}
               </div>
@@ -103,7 +122,13 @@ export default function NumberMemoryPage() {
           </div>
 
           {/* board */}
-          <div style={{ position: "relative" }}>
+          <div
+            style={{
+              position: "relative",
+              width: "min(94vw, 800px)",
+              margin: "0 auto",
+            }}
+          >
             <NumberMemoryBoard
               phase={phase}
               target={target}
@@ -186,6 +211,39 @@ export default function NumberMemoryPage() {
                   </div>
                 )}
 
+                {phase === "wrong" && (
+                  <div
+                    role="dialog"
+                    aria-label="Number Memory - wrong answer"
+                    style={{
+                      textAlign: "center",
+                      padding: 20,
+                      borderRadius: 16,
+                      background: "rgba(6, 8, 18, 0.78)",
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
+                      width: "min(520px, 92%)",
+                      color: "rgba(255,255,255,0.95)",
+                      display: "grid",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ fontSize: 22, fontWeight: 900 }}>
+                      Not quite 😅
+                    </div>
+                    <div style={{ opacity: 0.85, fontSize: 13 }}>
+                      {hearts} {hearts === 1 ? "life" : "lives"} remaining.
+                    </div>
+                    <button
+                      onClick={continueAfterWrong}
+                      style={{ ...baseBtn, height: 52, fontSize: 20 }}
+                      autoFocus
+                    >
+                      Try again →
+                    </button>
+                  </div>
+                )}
+
                 {phase === "lost" && (
                   <div
                     role="dialog"
@@ -212,7 +270,31 @@ export default function NumberMemoryPage() {
                     <div>
                       <button
                         onClick={restart}
-                        style={{ ...baseBtn, height: 52 }}
+                        aria-pressed={restartDlgPressed}
+                        onPointerDown={() => setRestartDlgPressed(true)}
+                        onPointerUp={() => setRestartDlgPressed(false)}
+                        onPointerLeave={() => setRestartDlgPressed(false)}
+                        onKeyDown={(e) => {
+                          if (
+                            e.key === "Enter" ||
+                            e.key === " " ||
+                            e.code === "Space"
+                          )
+                            setRestartDlgPressed(true);
+                        }}
+                        onKeyUp={(e) => {
+                          if (
+                            e.key === "Enter" ||
+                            e.key === " " ||
+                            e.code === "Space"
+                          )
+                            setRestartDlgPressed(false);
+                        }}
+                        style={{
+                          ...baseBtn,
+                          height: 52,
+                          ...(restartDlgPressed ? pressedStyles : null),
+                        }}
                       >
                         Restart
                       </button>
@@ -224,11 +306,17 @@ export default function NumberMemoryPage() {
           </div>
 
           {/* bottom restart */}
-          <div style={{ width: "min(94vw, 800px)", margin: "12px auto 0" }}>
+          <div
+            style={{
+              width: "min(94vw, 800px)",
+              margin: "0px auto 0",
+              fontSize: 18,
+            }}
+          >
             <hr
               style={{
                 height: 1,
-                margin: "12px 0 10px",
+                margin: "0px 0 10px",
                 border: "none",
                 background:
                   "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.18), rgba(255,255,255,0))",
@@ -236,14 +324,24 @@ export default function NumberMemoryPage() {
             />
             <button
               onClick={restart}
+              aria-label="restart-bottom"
+              aria-pressed={restartPressed}
+              onPointerDown={() => setRestartPressed(true)}
+              onPointerUp={() => setRestartPressed(false)}
+              onPointerLeave={() => setRestartPressed(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " " || e.code === "Space")
+                  setRestartPressed(true);
+              }}
+              onKeyUp={(e) => {
+                if (e.key === "Enter" || e.key === " " || e.code === "Space")
+                  setRestartPressed(false);
+              }}
               style={{
                 ...baseBtn,
                 width: "100%",
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                boxShadow: "none",
+                ...(restartPressed ? pressedStyles : null),
               }}
-              aria-label="restart-bottom"
             >
               Restart
             </button>
