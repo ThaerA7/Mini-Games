@@ -26,7 +26,7 @@ export default function SequenceGameBoard({
   const count = gridSize * gridSize;
 
   const containerStyle: React.CSSProperties = {
-    width: "min(92vw, 640px)",
+    width: "min(94vw, 800px)",
     margin: "0 auto",
     display: "grid",
     gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
@@ -42,7 +42,8 @@ export default function SequenceGameBoard({
     borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.10)",
     background: "rgba(255,255,255,0.06)",
-    transition: "transform 140ms ease, background 160ms ease, box-shadow 160ms ease",
+    transition:
+      "transform 140ms ease, background 160ms ease, box-shadow 160ms ease",
     boxShadow: "0 6px 16px rgba(0,0,0,0.30)",
     isolation: "isolate",
     contain: "paint",
@@ -51,7 +52,8 @@ export default function SequenceGameBoard({
 
   const glowStyle: React.CSSProperties = {
     background: "#ffffff",
-    boxShadow: "0 0 0 2px rgba(255,255,255,0.20) inset, 0 10px 22px rgba(255,255,255,0.08)",
+    boxShadow:
+      "0 0 0 2px rgba(255,255,255,0.20) inset, 0 10px 22px rgba(255,255,255,0.08)",
     transform: "translateY(-2px)",
   };
 
@@ -69,7 +71,7 @@ export default function SequenceGameBoard({
     // Map step k in [1..t] to HSL lightness & alpha so each step is visually distinct.
     // Hue fixed near green; lightness & alpha increase with progress.
     const hue = 145; // green
-    const sat = 65;  // %
+    const sat = 65; // %
     const lightMin = 38; // %
     const lightMax = 62; // %
     const alphaMin = 0.55;
@@ -116,7 +118,7 @@ export default function SequenceGameBoard({
         const isWrong = i === wrongAt;
 
         const total = totalCounts[i]; // total times this cell appears in the sequence
-        const done = doneCounts[i];   // how many of those have been correctly entered
+        const done = doneCounts[i]; // how many of those have been correctly entered
 
         // Compose styles by priority:
         // wrong > flashing > progress (only after first correct click) > base

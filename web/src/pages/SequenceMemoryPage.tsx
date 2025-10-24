@@ -124,12 +124,14 @@ export default function SequenceMemoryPage() {
         style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}
       >
         <section
-          style={{ width: "min(92vw, 720px)", display: "grid", gap: 16 }}
+          // Match NumberMemory layout: outer section up to 1040px
+          style={{ width: "min(1040px, 100%)", display: "grid", gap: 16 }}
         >
           {/* TOP BAR: Level • Hearts • Best Level */}
           <div
             style={{
-              width: "min(92vw, 640px)",
+              // Match NumberMemory inner width: 800px cap / 94vw
+              width: "min(94vw, 800px)",
               margin: "0 auto",
               display: "grid",
               gridTemplateColumns: "1fr auto 1fr",
@@ -151,7 +153,8 @@ export default function SequenceMemoryPage() {
           {/* BOARD WRAPPER */}
           <div
             style={{
-              width: "min(92vw, 640px)",
+              // Match NumberMemory inner width: 800px cap / 94vw
+              width: "min(94vw, 800px)",
               margin: "0 auto",
             }}
           >
