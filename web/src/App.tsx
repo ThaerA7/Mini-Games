@@ -1,12 +1,11 @@
 import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
-import SudokuPage from "./pages/SudokuPage";
+import SudokuPage from "./pages/sudoku_pages/SudokuPage";
 import KillerSudokuPage from "./pages/sudoku_pages/KillerSudokuPage";
-import VisualMemoryPage from "./pages/VisualMemoryPage";
-import SequenceMemoryPage from "./pages/SequenceMemoryPage";
-import ChimpTestPage from "./pages/ChimpTestPage";
-import NumberMemoryPage from "./pages/NumberMemoryPage";
-// ⬇️ NEW
+import VisualMemoryPage from "./pages/memory_pages/VisualMemoryPage";
+import SequenceMemoryPage from "./pages/memory_pages/SequenceMemoryPage";
+import ChimpTestPage from "./pages/memory_pages/ChimpTestPage";
+import NumberMemoryPage from "./pages/memory_pages/NumberMemoryPage";
 import FlagGuessPage from "./pages/guess_pages/FlagGuessPage";
 
 export default function App() {
