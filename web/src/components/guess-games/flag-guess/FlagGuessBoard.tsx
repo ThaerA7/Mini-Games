@@ -15,7 +15,6 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
   const [guess, setGuess] = React.useState("");
 
   React.useEffect(() => {
-    // Clear input whenever a fresh question appears or phase changes
     setGuess("");
   }, [question?.code, phase]);
 
@@ -73,7 +72,7 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
             <ReactCountryFlag
               countryCode={question.code}
               svg
-              title={question.answer}
+              /* removed title to avoid tooltip on hover */
               style={{
                 width: 320,
                 height: 240,
@@ -82,7 +81,6 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
               }}
             />
           ) : (
-            // keep the same footprint even if no question
             <div
               style={{
                 width: 320,
