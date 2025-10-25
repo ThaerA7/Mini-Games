@@ -1,6 +1,6 @@
 // src/pages/KillerSudokuPage.tsx
-import TopBar from "../components/TopBar";
-import KillerSudokuBoard from "../components/sudoku/KillerSudokuBoard";
+import TopBar from "../../components/TopBar";
+import KillerSudokuBoard from "../../components/sudoku/KillerSudokuBoard";
 
 export default function KillerSudokuPage() {
   return (

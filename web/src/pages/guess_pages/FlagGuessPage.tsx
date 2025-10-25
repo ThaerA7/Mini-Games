@@ -1,11 +1,11 @@
 // pages/FlagGuessPage.tsx
 import * as React from "react";
-import TopBar from "../components/TopBar";
-import FlagGuessBoard from "../components/guess-games/flag-guess/FlagGuessBoard";
+import TopBar from "../../components/TopBar";
+import FlagGuessBoard from "../../components/guess-games/flag-guess/FlagGuessBoard";
 import {
   useFlagGuess,
   TOTAL_FLAGS,
-} from "../components/guess-games/flag-guess/useFlagGuess";
+} from "../../components/guess-games/flag-guess/useFlagGuess";
 
 export default function FlagGuessPage() {
   const {
@@ -61,7 +61,10 @@ export default function FlagGuessPage() {
   };
 
   const showOverlay =
-    phase === "idle" || phase === "won" || phase === "finished" || phase === "wrong";
+    phase === "idle" ||
+    phase === "won" ||
+    phase === "finished" ||
+    phase === "wrong";
 
   return (
     <div
@@ -74,8 +77,12 @@ export default function FlagGuessPage() {
       }}
     >
       <TopBar />
-      <main style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}>
-        <section style={{ width: "min(1040px, 100%)", display: "grid", gap: 16 }}>
+      <main
+        style={{ flex: 1, display: "grid", placeItems: "center", padding: 16 }}
+      >
+        <section
+          style={{ width: "min(1040px, 100%)", display: "grid", gap: 16 }}
+        >
           {/* header */}
           <div style={{ width: "min(94vw, 800px)", margin: "0 auto" }}>
             <div
@@ -106,7 +113,11 @@ export default function FlagGuessPage() {
               margin: "0 auto",
             }}
           >
-            <FlagGuessBoard phase={phase} question={displayQuestion} onSubmit={submit} />
+            <FlagGuessBoard
+              phase={phase}
+              question={displayQuestion}
+              onSubmit={submit}
+            />
 
             {showOverlay && (
               <div
@@ -116,11 +127,14 @@ export default function FlagGuessPage() {
                   display: "grid",
                   placeItems: "center",
                   background:
-                    phase === "idle" ? "rgba(6, 8, 18, 0.40)" : "rgba(6, 8, 18, 0.55)",
+                    phase === "idle"
+                      ? "rgba(6, 8, 18, 0.40)"
+                      : "rgba(6, 8, 18, 0.55)",
                   borderRadius: 16,
                   border: "1px solid rgba(255,255,255,0.1)",
                   backdropFilter: phase === "idle" ? "blur(10px)" : undefined,
-                  WebkitBackdropFilter: phase === "idle" ? "blur(10px)" : undefined,
+                  WebkitBackdropFilter:
+                    phase === "idle" ? "blur(10px)" : undefined,
                   overflow: "hidden",
                   zIndex: 1,
                 }}
@@ -149,10 +163,14 @@ export default function FlagGuessPage() {
                       Guess the Country Flag
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.9 }}>
-                      Type the country name. You will play through all <b>{TOTAL_FLAGS}</b> flags —{" "}
-                      each one appears only once per run.
+                      Type the country name. You will play through all{" "}
+                      <b>{TOTAL_FLAGS}</b> flags — each one appears only once
+                      per run.
                     </div>
-                    <button onClick={start} style={{ ...baseBtn, height: 56, fontSize: 22 }}>
+                    <button
+                      onClick={start}
+                      style={{ ...baseBtn, height: 56, fontSize: 22 }}
+                    >
                       Start Level 1 →
                     </button>
                   </div>
@@ -175,8 +193,13 @@ export default function FlagGuessPage() {
                       gap: 10,
                     }}
                   >
-                    <div style={{ fontSize: 20, fontWeight: 800 }}>Correct! 🎉</div>
-                    <button onClick={nextLevel} style={{ ...baseBtn, height: 56, fontSize: 22 }}>
+                    <div style={{ fontSize: 20, fontWeight: 800 }}>
+                      Correct! 🎉
+                    </div>
+                    <button
+                      onClick={nextLevel}
+                      style={{ ...baseBtn, height: 56, fontSize: 22 }}
+                    >
                       Next Flag →
                     </button>
                   </div>
@@ -201,7 +224,9 @@ export default function FlagGuessPage() {
                       gap: 12,
                     }}
                   >
-                    <div style={{ fontSize: 22, fontWeight: 900 }}>Not quite 😅</div>
+                    <div style={{ fontSize: 22, fontWeight: 900 }}>
+                      Not quite 😅
+                    </div>
                     <div style={{ opacity: 0.9, fontSize: 14 }}>
                       Correct answer: <b>{question?.answer}</b>
                     </div>
@@ -234,13 +259,21 @@ export default function FlagGuessPage() {
                       gap: 12,
                     }}
                   >
-                    <div style={{ fontSize: 26, fontWeight: 900 }}>All done! 🎯</div>
+                    <div style={{ fontSize: 26, fontWeight: 900 }}>
+                      All done! 🎯
+                    </div>
                     <div style={{ opacity: 0.9, fontSize: 14 }}>
                       You’ve completed all {TOTAL_FLAGS} flags.
                       <br />
-                      Final score: <b>{score}/{TOTAL_FLAGS}</b>
+                      Final score:{" "}
+                      <b>
+                        {score}/{TOTAL_FLAGS}
+                      </b>
                       <br />
-                      Best score: <b>{bestScore}/{TOTAL_FLAGS}</b>
+                      Best score:{" "}
+                      <b>
+                        {bestScore}/{TOTAL_FLAGS}
+                      </b>
                     </div>
                     <button
                       onClick={restart}
@@ -249,11 +282,19 @@ export default function FlagGuessPage() {
                       onPointerUp={() => setRestartDlgPressed(false)}
                       onPointerLeave={() => setRestartDlgPressed(false)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " " || e.code === "Space")
+                        if (
+                          e.key === "Enter" ||
+                          e.key === " " ||
+                          e.code === "Space"
+                        )
                           setRestartDlgPressed(true);
                       }}
                       onKeyUp={(e) => {
-                        if (e.key === "Enter" || e.key === " " || e.code === "Space")
+                        if (
+                          e.key === "Enter" ||
+                          e.key === " " ||
+                          e.code === "Space"
+                        )
                           setRestartDlgPressed(false);
                       }}
                       style={{
