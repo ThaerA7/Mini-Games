@@ -1,8 +1,8 @@
 // src/pages/ChimpTestPage.tsx
 import * as React from "react";
-import TopBar from "../components/TopBar";
-import ChimpBoard from "../components/memory-games/chimp/ChimpBoard";
-import { useChimpGame } from "../components/memory-games/chimp/useChimpGame";
+import TopBar from "../../components/TopBar";
+import ChimpBoard from "../../components/memory-games/chimp/ChimpBoard";
+import { useChimpGame } from "../../components/memory-games/chimp/useChimpGame";
 
 export default function ChimpTestPage() {
   const {
