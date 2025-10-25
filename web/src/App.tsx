@@ -7,6 +7,7 @@ import SequenceMemoryPage from "./pages/memory_pages/SequenceMemoryPage";
 import ChimpTestPage from "./pages/memory_pages/ChimpTestPage";
 import NumberMemoryPage from "./pages/memory_pages/NumberMemoryPage";
 import FlagGuessPage from "./pages/guess_pages/FlagGuessPage";
+import MapShapeGuessPage from "./pages/guess_pages/MapShapeGuessPage";
 
 export default function App() {
   return (
@@ -18,7 +19,7 @@ export default function App() {
       <Route path="/sequence" element={<SequenceMemoryPage />} />
       <Route path="/chimp" element={<ChimpTestPage />} />
       <Route path="/number" element={<NumberMemoryPage />} />
-      {/* ⬇️ NEW */}
+      <Route path="/country-shape" element={<MapShapeGuessPage />} />
       <Route path="/flags" element={<FlagGuessPage />} />
     </Routes>
   );
