@@ -1,8 +1,8 @@
 // src/pages/VisualMemoryPage.tsx
 import React from "react";
-import TopBar from "../components/TopBar";
-import GameBoard from "../components/memory-games/visual-memory/GameBoard";
-import { useVisualMemoryGame } from "../components/memory-games/visual-memory/useVisualMemoryGame";
+import TopBar from "../../components/TopBar";
+import GameBoard from "../../components/memory-games/visual-memory/GameBoard";
+import { useVisualMemoryGame } from "../../components/memory-games/visual-memory/useVisualMemoryGame";
 
 export default function VisualMemoryPage() {
   const {
