@@ -1,15 +1,15 @@
+// pages/FlagGuessPage.tsx
 import * as React from "react";
 import TopBar from "../components/TopBar";
 import FlagGuessBoard from "../components/guess-games/flag-guess/FlagGuessBoard";
 import { useFlagGuess, TOTAL_FLAGS } from "../components/guess-games/flag-guess/useFlagGuess";
-import ReactCountryFlag from "react-country-flag";
 import { COUNTRIES } from "../components/guess-games/flag-guess/countries";
 
 export default function FlagGuessPage() {
   const {
-    level,        // 1..195 (position)
-    score,        // correct answers this run
-    bestScore,    // persistent best correct answers
+    level,
+    score,
+    bestScore,
     phase,
     question,
     start,
@@ -22,11 +22,18 @@ export default function FlagGuessPage() {
   const [restartPressed, setRestartPressed] = React.useState(false);
   const [restartDlgPressed, setRestartDlgPressed] = React.useState(false);
 
-  // Pick a pleasant random hero flag for the idle page background
+  // Pick a pleasant random flag to display UNDER the start dialog,
+  // but we render it inside the real board so size matches gameplay.
   const heroFlagCode = React.useMemo(() => {
     const c = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
     return c.code;
-  }, [phase === "idle"]); // change when we return to idle
+  }, [phase === "idle"]);
+
+  // When idle, show a "display question" so the board renders at full game size.
+  const displayQuestion = React.useMemo(
+    () => (phase === "idle" ? { code: heroFlagCode, flag: "", answer: "" } : question),
+    [phase, heroFlagCode, question]
+  );
 
   const baseBtn: React.CSSProperties = {
     fontFamily:
@@ -103,7 +110,8 @@ export default function FlagGuessPage() {
               margin: "0 auto",
             }}
           >
-            <FlagGuessBoard phase={phase} question={question} onSubmit={submit} />
+            {/* Render the board always. When idle we pass our displayQuestion so size matches gameplay */}
+            <FlagGuessBoard phase={phase} question={displayQuestion} onSubmit={submit} />
 
             {showOverlay && (
               <div
@@ -112,41 +120,17 @@ export default function FlagGuessPage() {
                   inset: 0,
                   display: "grid",
                   placeItems: "center",
-                  background: "rgba(6, 8, 18, 0.55)",
+                  background:
+                    phase === "idle" ? "rgba(6, 8, 18, 0.40)" : "rgba(6, 8, 18, 0.55)",
                   borderRadius: 16,
                   border: "1px solid rgba(255,255,255,0.1)",
-                  backdropFilter: "blur(6px)",
-                  overflow: "hidden", // keep the hero flag inside rounded rect
+                  backdropFilter: phase === "idle" ? "blur(10px)" : undefined,
+                  WebkitBackdropFilter: phase === "idle" ? "blur(10px)" : undefined,
+                  overflow: "hidden",
                   zIndex: 1,
                 }}
               >
-                {/* Background flag for idle page */}
-                {phase === "idle" && (
-                  <div
-                    aria-hidden
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      zIndex: 0,
-                      pointerEvents: "none",
-                      opacity: 0.22,
-                      filter: "blur(8px) saturate(1.05)",
-                      display: "grid",
-                      placeItems: "center",
-                    }}
-                  >
-                    <ReactCountryFlag
-                      countryCode={heroFlagCode}
-                      svg
-                      style={{
-                        width: "95%",
-                        height: "auto",
-                        maxHeight: 420,
-                        borderRadius: 12,
-                      }}
-                    />
-                  </div>
-                )}
+                {/* Note: we REMOVED the separate hero flag layer so the real board shows through blurred */}
 
                 {/* Foreground dialog */}
                 {phase === "idle" && (
@@ -172,7 +156,7 @@ export default function FlagGuessPage() {
                       Guess the Country Flag
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.9 }}>
-                      Type the country name. You will play through all <b>{TOTAL_FLAGS}</b> flags —
+                      Type the country name. You will play through all <b>{TOTAL_FLAGS}</b> flags —{" "}
                       each one appears only once per run.
                     </div>
                     <button onClick={start} style={{ ...baseBtn, height: 56, fontSize: 22 }}>

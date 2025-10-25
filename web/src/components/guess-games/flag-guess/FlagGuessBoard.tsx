@@ -1,3 +1,4 @@
+// components/guess-games/flag-guess/FlagGuessBoard.tsx
 import * as React from "react";
 import ReactCountryFlag from "react-country-flag";
 import type { Question } from "./useFlagGuess";
@@ -81,7 +82,15 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
               }}
             />
           ) : (
-            "🏳️"
+            // keep the same footprint even if no question
+            <div
+              style={{
+                width: 320,
+                height: 240,
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.06)",
+              }}
+            />
           )}
         </div>
       </div>
@@ -120,12 +129,13 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
 
         <datalist id={suggestionsId}>
           {guess.trim().length >= 2 &&
-            COUNTRIES
-              .filter((c) =>
-                c.name.toLowerCase().includes(guess.trim().toLowerCase())
-              )
+            COUNTRIES.filter((c) =>
+              c.name.toLowerCase().includes(guess.trim().toLowerCase())
+            )
               .slice(0, 20)
-              .map((c) => <option key={c.code} value={c.name} />)}
+              .map((c) => (
+                <option key={c.code} value={c.name} />
+              ))}
         </datalist>
 
         <button type="submit" style={baseBtn} disabled={disabled || !guess.trim()}>
