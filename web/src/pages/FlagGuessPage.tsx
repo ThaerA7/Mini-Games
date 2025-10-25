@@ -1,13 +1,15 @@
 import * as React from "react";
 import TopBar from "../components/TopBar";
 import FlagGuessBoard from "../components/guess-games/flag-guess/FlagGuessBoard";
-import { useFlagGuess } from "../components/guess-games/flag-guess/useFlagGuess";
+import { useFlagGuess, TOTAL_FLAGS } from "../components/guess-games/flag-guess/useFlagGuess";
+import ReactCountryFlag from "react-country-flag";
+import { COUNTRIES } from "../components/guess-games/flag-guess/countries";
 
 export default function FlagGuessPage() {
   const {
-    level,
-    bestLevel,
-    hearts,
+    level,        // 1..195 (position)
+    score,        // correct answers this run
+    bestScore,    // persistent best correct answers
     phase,
     question,
     start,
@@ -15,10 +17,16 @@ export default function FlagGuessPage() {
     nextLevel,
     submit,
     continueAfterWrong,
-  } = useFlagGuess(3, 4);
+  } = useFlagGuess();
 
   const [restartPressed, setRestartPressed] = React.useState(false);
   const [restartDlgPressed, setRestartDlgPressed] = React.useState(false);
+
+  // Pick a pleasant random hero flag for the idle page background
+  const heroFlagCode = React.useMemo(() => {
+    const c = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+    return c.code;
+  }, [phase === "idle"]); // change when we return to idle
 
   const baseBtn: React.CSSProperties = {
     fontFamily:
@@ -49,30 +57,8 @@ export default function FlagGuessPage() {
     opacity: 0.98,
   };
 
-  const renderHearts = (n: number) => {
-    const total = 3;
-    return (
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        {Array.from({ length: total }).map((_, i) => (
-          <span
-            key={i}
-            style={{
-              fontSize: 18,
-              lineHeight: 1,
-              filter: "drop-shadow(0 0 4px rgba(255,255,255,0.25))",
-              opacity: 0.95,
-            }}
-            aria-hidden
-          >
-            {i < n ? "❤" : "♡"}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
   const showOverlay =
-    phase === "idle" || phase === "won" || phase === "lost" || phase === "wrong";
+    phase === "idle" || phase === "won" || phase === "finished" || phase === "wrong";
 
   return (
     <div
@@ -100,11 +86,11 @@ export default function FlagGuessPage() {
               }}
             >
               <div style={{ justifySelf: "start", fontWeight: 700 }}>
-                Current Level: {level}
+                Current level: {Math.min(level, TOTAL_FLAGS)}/{TOTAL_FLAGS}
               </div>
-              <div style={{ justifySelf: "center" }}>{renderHearts(hearts)}</div>
+              <div style={{ justifySelf: "center" }} />
               <div style={{ justifySelf: "end", fontWeight: 700 }}>
-                Best Level: {bestLevel}
+                Best score: {bestScore}/{TOTAL_FLAGS}
               </div>
             </div>
           </div>
@@ -130,31 +116,64 @@ export default function FlagGuessPage() {
                   borderRadius: 16,
                   border: "1px solid rgba(255,255,255,0.1)",
                   backdropFilter: "blur(6px)",
+                  overflow: "hidden", // keep the hero flag inside rounded rect
+                  zIndex: 1,
                 }}
               >
+                {/* Background flag for idle page */}
+                {phase === "idle" && (
+                  <div
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: 0,
+                      pointerEvents: "none",
+                      opacity: 0.22,
+                      filter: "blur(8px) saturate(1.05)",
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
+                    <ReactCountryFlag
+                      countryCode={heroFlagCode}
+                      svg
+                      style={{
+                        width: "95%",
+                        height: "auto",
+                        maxHeight: 420,
+                        borderRadius: 12,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Foreground dialog */}
                 {phase === "idle" && (
                   <div
                     role="dialog"
                     aria-label="Guess the Country Flag - start"
                     style={{
+                      position: "relative",
+                      zIndex: 1,
                       textAlign: "center",
-                      padding: "20px 18px",
+                      padding: "24px 20px",
                       borderRadius: 16,
                       background: "rgba(6, 8, 18, 0.75)",
                       border: "1px solid rgba(255,255,255,0.14)",
                       boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
-                      width: "min(520px, 92%)",
+                      width: "min(560px, 92%)",
                       color: "rgba(255,255,255,0.95)",
                       display: "grid",
-                      gap: 10,
+                      gap: 12,
                     }}
                   >
                     <div style={{ fontSize: 26, fontWeight: 900 }}>
                       Guess the Country Flag
                     </div>
-                    <div style={{ fontSize: 13, opacity: 0.85 }}>
-                      A flag appears. Choose the correct country from four options.
-                      Each level is a new flag. You have <b>3 lives</b>.
+                    <div style={{ fontSize: 13, opacity: 0.9 }}>
+                      Type the country name. You will play through all <b>{TOTAL_FLAGS}</b> flags —
+                      each one appears only once per run.
                     </div>
                     <button onClick={start} style={{ ...baseBtn, height: 56, fontSize: 22 }}>
                       Start Level 1 →
@@ -165,6 +184,8 @@ export default function FlagGuessPage() {
                 {phase === "won" && (
                   <div
                     style={{
+                      position: "relative",
+                      zIndex: 1,
                       textAlign: "center",
                       padding: 18,
                       borderRadius: 16,
@@ -179,7 +200,7 @@ export default function FlagGuessPage() {
                   >
                     <div style={{ fontSize: 20, fontWeight: 800 }}>Correct! 🎉</div>
                     <button onClick={nextLevel} style={{ ...baseBtn, height: 56, fontSize: 22 }}>
-                      Next Level →
+                      Next Flag →
                     </button>
                   </div>
                 )}
@@ -189,77 +210,83 @@ export default function FlagGuessPage() {
                     role="dialog"
                     aria-label="Guess the Country Flag - wrong answer"
                     style={{
+                      position: "relative",
+                      zIndex: 1,
                       textAlign: "center",
                       padding: 20,
                       borderRadius: 16,
                       background: "rgba(6, 8, 18, 0.78)",
                       border: "1px solid rgba(255,255,255,0.14)",
                       boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
-                      width: "min(520px, 92%)",
+                      width: "min(560px, 92%)",
                       color: "rgba(255,255,255,0.95)",
                       display: "grid",
                       gap: 12,
                     }}
                   >
                     <div style={{ fontSize: 22, fontWeight: 900 }}>Not quite 😅</div>
-                    <div style={{ opacity: 0.85, fontSize: 13 }}>
-                      {hearts} {hearts === 1 ? "life" : "lives"} remaining.
+                    <div style={{ opacity: 0.9, fontSize: 14 }}>
+                      Correct answer: <b>{question?.answer}</b>
                     </div>
                     <button
                       onClick={continueAfterWrong}
                       style={{ ...baseBtn, height: 52, fontSize: 20 }}
                       autoFocus
                     >
-                      Try another flag →
+                      Next Flag →
                     </button>
                   </div>
                 )}
 
-                {phase === "lost" && (
+                {phase === "finished" && (
                   <div
                     role="dialog"
-                    aria-label="Guess the Country Flag - game over"
+                    aria-label="Guess the Country Flag - finished"
                     style={{
+                      position: "relative",
+                      zIndex: 1,
                       textAlign: "center",
                       padding: 22,
                       borderRadius: 16,
                       background: "rgba(6, 8, 18, 0.80)",
                       border: "1px solid rgba(255,255,255,0.14)",
                       boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
-                      width: "min(520px, 92%)",
+                      width: "min(560px, 92%)",
                       color: "rgba(255,255,255,0.95)",
                       display: "grid",
                       gap: 12,
                     }}
                   >
-                    <div style={{ fontSize: 26, fontWeight: 900 }}>Game Over</div>
-                    <div style={{ opacity: 0.85, fontSize: 13 }}>
-                      You ran out of lives. Try again!
+                    <div style={{ fontSize: 26, fontWeight: 900 }}>All done! 🎯</div>
+                    <div style={{ opacity: 0.9, fontSize: 14 }}>
+                      You’ve completed all {TOTAL_FLAGS} flags.
+                      <br />
+                      Final score: <b>{score}/{TOTAL_FLAGS}</b>
+                      <br />
+                      Best score: <b>{bestScore}/{TOTAL_FLAGS}</b>
                     </div>
-                    <div>
-                      <button
-                        onClick={restart}
-                        aria-pressed={restartDlgPressed}
-                        onPointerDown={() => setRestartDlgPressed(true)}
-                        onPointerUp={() => setRestartDlgPressed(false)}
-                        onPointerLeave={() => setRestartDlgPressed(false)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " " || e.code === "Space")
-                            setRestartDlgPressed(true);
-                        }}
-                        onKeyUp={(e) => {
-                          if (e.key === "Enter" || e.key === " " || e.code === "Space")
-                            setRestartDlgPressed(false);
-                        }}
-                        style={{
-                          ...baseBtn,
-                          height: 52,
-                          ...(restartDlgPressed ? pressedStyles : null),
-                        }}
-                      >
-                        Restart
-                      </button>
-                    </div>
+                    <button
+                      onClick={restart}
+                      aria-pressed={restartDlgPressed}
+                      onPointerDown={() => setRestartDlgPressed(true)}
+                      onPointerUp={() => setRestartDlgPressed(false)}
+                      onPointerLeave={() => setRestartDlgPressed(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " " || e.code === "Space")
+                          setRestartDlgPressed(true);
+                      }}
+                      onKeyUp={(e) => {
+                        if (e.key === "Enter" || e.key === " " || e.code === "Space")
+                          setRestartDlgPressed(false);
+                      }}
+                      style={{
+                        ...baseBtn,
+                        height: 52,
+                        ...(restartDlgPressed ? pressedStyles : null),
+                      }}
+                    >
+                      Play again
+                    </button>
                   </div>
                 )}
               </div>

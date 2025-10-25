@@ -1,15 +1,22 @@
 import * as React from "react";
-import ReactCountryFlag from "react-country-flag"; // <-- add this
+import ReactCountryFlag from "react-country-flag";
 import type { Question } from "./useFlagGuess";
+import { COUNTRIES } from "./countries";
 
 type Props = {
-  phase: "idle" | "playing" | "won" | "wrong" | "lost";
+  phase: "idle" | "playing" | "won" | "wrong" | "finished";
   question: Question | null;
   onSubmit: (countryName: string) => void;
 };
 
 export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
   const disabled = phase !== "playing";
+  const [guess, setGuess] = React.useState("");
+
+  React.useEffect(() => {
+    // Clear input whenever a fresh question appears or phase changes
+    setGuess("");
+  }, [question?.code, phase]);
 
   const baseBtn: React.CSSProperties = {
     fontFamily:
@@ -31,6 +38,12 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
     transition: "transform .12s ease, box-shadow .2s ease, opacity .2s ease",
   };
 
+  const submit = () => {
+    if (!disabled && guess.trim()) onSubmit(guess.trim());
+  };
+
+  const suggestionsId = "country-suggestions";
+
   return (
     <div
       style={{
@@ -50,9 +63,8 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
       >
         <div
           style={{
-            // The SVG scales by width/height; this block keeps your glow/shadow
             filter: "drop-shadow(0 4px 12px rgba(0,0,0,.35))",
-            lineHeight: 0, // avoid extra vertical space
+            lineHeight: 0,
           }}
           aria-label="flag"
         >
@@ -62,9 +74,9 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
               svg
               title={question.answer}
               style={{
-                width: 320, 
-                height: 240, 
-                borderRadius: 8, 
+                width: 320,
+                height: 240,
+                borderRadius: 8,
                 display: "block",
               }}
             />
@@ -74,26 +86,52 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
         </div>
       </div>
 
-      {/* Options */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0,1fr))",
-          gap: 10,
-          marginTop: 12,
+      {/* Free-text answer with suggestions */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
         }}
+        style={{ display: "grid", gap: 10, marginTop: 12 }}
       >
-        {question?.options.map((opt) => (
-          <button
-            key={opt}
-            style={baseBtn}
-            disabled={disabled}
-            onClick={() => onSubmit(opt)}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
+        <input
+          type="text"
+          placeholder="Type the country name…"
+          value={guess}
+          onChange={(e) => setGuess(e.target.value)}
+          disabled={disabled}
+          list={guess.trim().length >= 2 ? suggestionsId : undefined}
+          style={{
+            height: 48,
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,.18)",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05))",
+            color: "#e5e7eb",
+            padding: "0 14px",
+            fontSize: 16,
+            outline: "none",
+            boxShadow:
+              "inset 0 0 0 1px rgba(255,255,255,.06), 0 4px 12px rgba(0,0,0,.20)",
+          }}
+          aria-label="Country name"
+          autoComplete="off"
+        />
+
+        <datalist id={suggestionsId}>
+          {guess.trim().length >= 2 &&
+            COUNTRIES
+              .filter((c) =>
+                c.name.toLowerCase().includes(guess.trim().toLowerCase())
+              )
+              .slice(0, 20)
+              .map((c) => <option key={c.code} value={c.name} />)}
+        </datalist>
+
+        <button type="submit" style={baseBtn} disabled={disabled || !guess.trim()}>
+          Submit
+        </button>
+      </form>
     </div>
   );
 }

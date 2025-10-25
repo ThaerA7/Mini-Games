@@ -1,16 +1,16 @@
 import * as React from "react";
 import { COUNTRIES } from "./countries";
 
-type Phase = "idle" | "playing" | "won" | "wrong" | "lost";
+type Phase = "idle" | "playing" | "won" | "wrong" | "finished";
 
 export type Question = {
-  code: string;        // <-- new (ISO 3166-1 alpha-2, e.g. "US", "DE")
-  flag: string;        // keep as fallback (optional to remove later)
-  answer: string;
-  options: string[];
+  code: string;   // ISO 3166-1 alpha-2 (e.g., "US", "DE")
+  flag: string;   // fallback emoji (kept, in case you want it later)
+  answer: string; // canonical country name from COUNTRIES
 };
 
-const BEST_KEY = "flag-guess-best";
+const BEST_KEY = "flag-guess-best-score";
+export const TOTAL_FLAGS = COUNTRIES.length; // 195
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -21,84 +21,94 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function makeQuestion(optionsCount = 4): Question {
-  const pool = COUNTRIES;
-  const answerCountry = pool[Math.floor(Math.random() * pool.length)];
-  const others = shuffle(pool.filter((c) => c.name !== answerCountry.name))
-    .slice(0, Math.max(0, optionsCount - 1));
-  const options = shuffle([answerCountry.name, ...others.map((c) => c.name)]);
-  return {
-    code: answerCountry.code,          // <-- add this
-    flag: answerCountry.flag,          // (optional fallback)
-    answer: answerCountry.name,
-    options,
-  };
+function normalizeName(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")  // strip accents
+    .replace(/[\s'’"().,/-]+/g, " ")  // collapse punctuation-ish
+    .replace(/\s+/g, " ");            // normalize spaces
 }
 
-export function useFlagGuess(
-  lives = 3,
-  optionsCount = 4
-) {
-  const [level, setLevel] = React.useState(1);
-  const [bestLevel, setBestLevel] = React.useState(
+function makeQuestionFromCountry(c: { code: string; name: string; flag: string }): Question {
+  return { code: c.code, flag: c.flag, answer: c.name };
+}
+
+export function useFlagGuess() {
+  const [phase, setPhase] = React.useState<Phase>("idle");
+  const [queue, setQueue] = React.useState<typeof COUNTRIES>([]);
+  const [levelIndex, setLevelIndex] = React.useState(0); // 0-based position in queue
+  const [score, setScore] = React.useState(0);           // correct answers this run
+  const [bestScore, setBestScore] = React.useState(
     Number(localStorage.getItem(BEST_KEY) || 0)
   );
-  const [hearts, setHearts] = React.useState(lives);
-  const [phase, setPhase] = React.useState<Phase>("idle");
-  const [question, setQuestion] = React.useState<Question | null>(null);
+
+  const question = React.useMemo<Question | null>(() => {
+    if (phase === "idle" || phase === "finished" || queue.length === 0) return null;
+    const c = queue[levelIndex];
+    return c ? makeQuestionFromCountry(c) : null;
+  }, [queue, levelIndex, phase]);
 
   const start = React.useCallback(() => {
-    setLevel(1);
-    setHearts(lives);
-    setQuestion(makeQuestion(optionsCount));
+    const shuffled = shuffle(COUNTRIES);
+    setQueue(shuffled);
+    setLevelIndex(0);
+    setScore(0);
     setPhase("playing");
-  }, [lives, optionsCount]);
+  }, []);
 
   const restart = start;
 
-  const submit = (name: string) => {
+  const submit = (userInput: string) => {
     if (!question || phase !== "playing") return;
-    if (name === question.answer) {
-      const next = level + 1;
-      const newBest = Math.max(bestLevel, next - 1);
-      if (newBest !== bestLevel) {
-        setBestLevel(newBest);
-        localStorage.setItem(BEST_KEY, String(newBest));
+
+    const normGuess = normalizeName(userInput);
+    const normAnswer = normalizeName(question.answer);
+
+    const isCorrect = normGuess === normAnswer;
+
+    if (isCorrect) {
+      const nextScore = score + 1;
+      if (nextScore > bestScore) {
+        setBestScore(nextScore);
+        localStorage.setItem(BEST_KEY, String(nextScore));
       }
+      setScore(nextScore);
       setPhase("won");
     } else {
-      const left = hearts - 1;
-      setHearts(left);
-      if (left <= 0) {
-        setPhase("lost");
-      } else {
-        setPhase("wrong");
-      }
+      setPhase("wrong");
     }
   };
 
-  const nextLevel = () => {
-    setLevel((l) => l + 1);
-    setQuestion(makeQuestion(optionsCount));
-    setPhase("playing");
+  const goNext = () => {
+    const nextIndex = levelIndex + 1;
+    if (nextIndex >= TOTAL_FLAGS) {
+      setPhase("finished");
+    } else {
+      setLevelIndex(nextIndex);
+      setPhase("playing");
+    }
   };
 
-  const continueAfterWrong = () => {
-    // New question, same level
-    setQuestion(makeQuestion(optionsCount));
-    setPhase("playing");
-  };
+  const continueAfterWrong = goNext;
 
   return {
-    level,
-    bestLevel,
-    hearts,
+    // progress
+    level: levelIndex + 1,      // show as X/195
+    score,                      // correct answers this run
+    bestScore,                  // persistent best
+    total: TOTAL_FLAGS,
+
+    // state
     phase,
     question,
+
+    // actions
     start,
     restart,
-    nextLevel,
     submit,
+    nextLevel: goNext,
     continueAfterWrong,
   };
 }
