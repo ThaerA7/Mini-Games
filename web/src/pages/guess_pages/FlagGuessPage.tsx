@@ -1,4 +1,4 @@
-// pages/FlagGuessPage.tsx
+// pages/guess_pages/FlagGuessPage.tsx
 import * as React from "react";
 import TopBar from "../../components/TopBar";
 import FlagGuessBoard from "../../components/guess-games/flag-guess/FlagGuessBoard";
