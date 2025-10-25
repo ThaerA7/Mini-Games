@@ -4,7 +4,8 @@ import { COUNTRIES } from "./countries";
 type Phase = "idle" | "playing" | "won" | "wrong" | "lost";
 
 export type Question = {
-  flag: string;
+  code: string;        // <-- new (ISO 3166-1 alpha-2, e.g. "US", "DE")
+  flag: string;        // keep as fallback (optional to remove later)
   answer: string;
   options: string[];
 };
@@ -23,12 +24,15 @@ function shuffle<T>(arr: T[]): T[] {
 function makeQuestion(optionsCount = 4): Question {
   const pool = COUNTRIES;
   const answerCountry = pool[Math.floor(Math.random() * pool.length)];
-  const others = shuffle(pool.filter((c) => c.name !== answerCountry.name)).slice(
-    0,
-    Math.max(0, optionsCount - 1)
-  );
+  const others = shuffle(pool.filter((c) => c.name !== answerCountry.name))
+    .slice(0, Math.max(0, optionsCount - 1));
   const options = shuffle([answerCountry.name, ...others.map((c) => c.name)]);
-  return { flag: answerCountry.flag, answer: answerCountry.name, options };
+  return {
+    code: answerCountry.code,          // <-- add this
+    flag: answerCountry.flag,          // (optional fallback)
+    answer: answerCountry.name,
+    options,
+  };
 }
 
 export function useFlagGuess(

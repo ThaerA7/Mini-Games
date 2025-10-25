@@ -16,6 +16,7 @@
     "howler": "^2.2.4",
     "phaser": "^3.90.0",
     "react": "^19.1.1",
+    "react-country-flag": "^3.1.0",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4",
     "zustand": "^5.0.8"
@@ -49,5 +50,6 @@
     "*.{ts,tsx,js,jsx,css,md,json}": [
       "prettier --write"
     ]
-  }
+  },
+  "packageManager": "pnpm@10.19.0+sha512.c9fc7236e92adf5c8af42fd5bf1612df99c2ceb62f27047032f4720b33f8eacdde311865e91c411f2774f618d82f320808ecb51718bfa82c060c4ba7c76a32b8"
 }

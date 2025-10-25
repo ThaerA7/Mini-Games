@@ -1,4 +1,5 @@
 import * as React from "react";
+import ReactCountryFlag from "react-country-flag"; // <-- add this
 import type { Question } from "./useFlagGuess";
 
 type Props = {
@@ -49,13 +50,27 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
       >
         <div
           style={{
-            fontSize: 96,
-            lineHeight: 1,
+            // The SVG scales by width/height; this block keeps your glow/shadow
             filter: "drop-shadow(0 4px 12px rgba(0,0,0,.35))",
+            lineHeight: 0, // avoid extra vertical space
           }}
           aria-label="flag"
         >
-          {question?.flag ?? "🏳️"}
+          {question ? (
+            <ReactCountryFlag
+              countryCode={question.code}
+              svg
+              title={question.answer}
+              style={{
+                width: 320, 
+                height: 240, 
+                borderRadius: 8, 
+                display: "block",
+              }}
+            />
+          ) : (
+            "🏳️"
+          )}
         </div>
       </div>
 
