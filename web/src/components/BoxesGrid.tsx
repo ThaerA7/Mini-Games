@@ -1,9 +1,9 @@
 // src/components/BoxesGrid.tsx
 import React from "react";
-import { useNavigate } from 'react-router-dom'
 import SudokuOptionsDialog from "./sudoku/SudokuOptionsDialog";
 import SudokuImg from "../assets/Sudoku.png";
 import MemoryOptionsDialog from "./memory-games/visual-memory/MemoryOptionsDialog.tsx";
+import GuessGamesOptionsDialog from "./guess-games/GuessGamesDialog.tsx"; // ⬅️ NEW
 
 export type Difficulty =
   | "easy"
@@ -18,7 +18,7 @@ export default function BoxesGrid() {
   const [pressedIndex, setPressedIndex] = React.useState<number | null>(null);
   const [sudokuOpen, setSudokuOpen] = React.useState(false);
   const [memoryOpen, setMemoryOpen] = React.useState(false);
-const navigate = useNavigate(); 
+  const [guessOpen, setGuessOpen] = React.useState(false);
 
   const baseBoxStyle: React.CSSProperties = {
     aspectRatio: "1 / 1",
@@ -142,44 +142,45 @@ const navigate = useNavigate();
             );
           }
 if (i === 2) {
-            // ⬇️ NEW: Guess the Flag launcher tile (third grid)
+            // Guess Games launcher tile (third grid)
             return (
               <div
-                key="flag-guess"
+                key="guess-games"
                 style={{
                   ...getBoxStyle(pressedIndex === i),
-                  display: 'grid',
-                  placeItems: 'center',
+                  display: "grid",
+                  placeItems: "center",
                 }}
-                onPointerDown={() => handlePointerDown(i)}
-                onPointerUp={clearPress}
-                onPointerLeave={clearPress}
-                onPointerCancel={clearPress}
-                onClick={() => navigate('/flags')}
-                aria-label="Open Guess the Country Flag"
+                onPointerDown={() => setPressedIndex(i)}
+                onPointerUp={() => setPressedIndex(null)}
+                onPointerLeave={() => setPressedIndex(null)}
+                onPointerCancel={() => setPressedIndex(null)}
+                onClick={() => setGuessOpen(true)} // ⬅️ open dialog
+                aria-label="Open Guess Games"
               >
-                <div style={{ textAlign: 'center', padding: '0 8px', lineHeight: 1.15 }}>
-                  <div style={{ fontSize: 32, marginBottom: 6 }}>🚩</div>
-                  <div style={{ fontWeight: 800, fontSize: 16 }}>Guess the</div>
-                  <div style={{ fontWeight: 800, fontSize: 16 }}>Country Flag</div>
+                <div style={{ textAlign: "center", padding: "0 8px", lineHeight: 1.15 }}>
+                  <div style={{ fontSize: 32, marginBottom: 6 }}>🧩</div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>Guess</div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>Games</div>
                 </div>
               </div>
-            )
+            );
           }
           // Placeholder / future games tiles
           return (
             <div
               key={i}
               style={getBoxStyle(pressedIndex === i)}
-              onPointerDown={() => handlePointerDown(i)}
-              onPointerUp={clearPress}
-              onPointerLeave={clearPress}
-              onPointerCancel={clearPress}
+              onPointerDown={() => setPressedIndex(i)}
+              onPointerUp={() => setPressedIndex(null)}
+              onPointerLeave={() => setPressedIndex(null)}
+              onPointerCancel={() => setPressedIndex(null)}
               aria-label={`empty-tile-${i}`}
             />
           );
         })}
       </div>
+
       <MemoryOptionsDialog open={memoryOpen} onOpenChange={setMemoryOpen} />
       <SudokuOptionsDialog
         open={sudokuOpen}
@@ -187,6 +188,7 @@ if (i === 2) {
         onStartNew={startNew}
         onContinue={continueGame}
       />
+      <GuessGamesOptionsDialog open={guessOpen} onOpenChange={setGuessOpen} /> {/* ⬅️ NEW */}
     </section>
   );
 }
