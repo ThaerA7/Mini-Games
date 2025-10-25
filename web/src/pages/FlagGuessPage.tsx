@@ -2,8 +2,10 @@
 import * as React from "react";
 import TopBar from "../components/TopBar";
 import FlagGuessBoard from "../components/guess-games/flag-guess/FlagGuessBoard";
-import { useFlagGuess, TOTAL_FLAGS } from "../components/guess-games/flag-guess/useFlagGuess";
-import { COUNTRIES } from "../components/guess-games/flag-guess/countries";
+import {
+  useFlagGuess,
+  TOTAL_FLAGS,
+} from "../components/guess-games/flag-guess/useFlagGuess";
 
 export default function FlagGuessPage() {
   const {
@@ -12,6 +14,7 @@ export default function FlagGuessPage() {
     bestScore,
     phase,
     question,
+    upcomingFirst, // same flag as Level 1
     start,
     restart,
     nextLevel,
@@ -22,17 +25,10 @@ export default function FlagGuessPage() {
   const [restartPressed, setRestartPressed] = React.useState(false);
   const [restartDlgPressed, setRestartDlgPressed] = React.useState(false);
 
-  // Pick a pleasant random flag to display UNDER the start dialog,
-  // but we render it inside the real board so size matches gameplay.
-  const heroFlagCode = React.useMemo(() => {
-    const c = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
-    return c.code;
-  }, [phase === "idle"]);
-
-  // When idle, show a "display question" so the board renders at full game size.
+  // When idle, render the board with the upcoming first question so size matches gameplay.
   const displayQuestion = React.useMemo(
-    () => (phase === "idle" ? { code: heroFlagCode, flag: "", answer: "" } : question),
-    [phase, heroFlagCode, question]
+    () => (phase === "idle" ? upcomingFirst : question),
+    [phase, upcomingFirst, question]
   );
 
   const baseBtn: React.CSSProperties = {
@@ -110,7 +106,6 @@ export default function FlagGuessPage() {
               margin: "0 auto",
             }}
           >
-            {/* Render the board always. When idle we pass our displayQuestion so size matches gameplay */}
             <FlagGuessBoard phase={phase} question={displayQuestion} onSubmit={submit} />
 
             {showOverlay && (
@@ -130,9 +125,7 @@ export default function FlagGuessPage() {
                   zIndex: 1,
                 }}
               >
-                {/* Note: we REMOVED the separate hero flag layer so the real board shows through blurred */}
-
-                {/* Foreground dialog */}
+                {/* Foreground dialogs */}
                 {phase === "idle" && (
                   <div
                     role="dialog"
