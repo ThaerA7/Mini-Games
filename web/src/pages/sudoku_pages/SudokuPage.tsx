@@ -1,5 +1,5 @@
-import TopBar from '../components/TopBar'
-import SudokuBoard from '../components/sudoku/SudokuBoard'
+import TopBar from '../../components/TopBar'
+import SudokuBoard from '../../components/sudoku/SudokuBoard'
 import { useLocation } from 'react-router-dom'
 
 export default function SudokuPage() {
