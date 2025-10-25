@@ -5,9 +5,9 @@ import { COUNTRIES } from "./countries";
 type Phase = "idle" | "playing" | "won" | "wrong" | "finished";
 
 export type Question = {
-  code: string;   // ISO 3166-1 alpha-2 (e.g., "US", "DE")
-  flag: string;   // fallback emoji (kept, in case you want it later)
-  answer: string; // canonical country name from COUNTRIES
+  code: string;   // ISO 3166-1 alpha-2
+  flag: string;   // fallback emoji
+  answer: string; // canonical name
 };
 
 const BEST_KEY = "flag-guess-best-score";
@@ -38,11 +38,24 @@ function makeQuestionFromCountry(c: { code: string; name: string; flag: string }
 
 export function useFlagGuess() {
   const [phase, setPhase] = React.useState<Phase>("idle");
+
+  // Queue for the current run
   const [queue, setQueue] = React.useState<typeof COUNTRIES>([]);
-  const [levelIndex, setLevelIndex] = React.useState(0); // 0-based position in queue
-  const [score, setScore] = React.useState(0);           // correct answers this run
+  const [levelIndex, setLevelIndex] = React.useState(0);
+  const [score, setScore] = React.useState(0);
+
+  // Persistent best
   const [bestScore, setBestScore] = React.useState(
     Number(localStorage.getItem(BEST_KEY) || 0)
+  );
+
+  // Pre-generated queue for the NEXT run (used to show the same first flag behind the start dialog)
+  const [pendingQueue, setPendingQueue] = React.useState<typeof COUNTRIES>(() =>
+    shuffle(COUNTRIES)
+  );
+  const upcomingFirst: Question = React.useMemo(
+    () => makeQuestionFromCountry(pendingQueue[0]),
+    [pendingQueue]
   );
 
   const question = React.useMemo<Question | null>(() => {
@@ -52,12 +65,14 @@ export function useFlagGuess() {
   }, [queue, levelIndex, phase]);
 
   const start = React.useCallback(() => {
-    const shuffled = shuffle(COUNTRIES);
-    setQueue(shuffled);
+    // Use the pre-generated queue so the first level flag matches the blurred background
+    setQueue(pendingQueue);
     setLevelIndex(0);
     setScore(0);
     setPhase("playing");
-  }, []);
+    // Prepare a fresh pending queue for the next time we go idle
+    setPendingQueue(shuffle(COUNTRIES));
+  }, [pendingQueue]);
 
   const restart = start;
 
@@ -96,14 +111,15 @@ export function useFlagGuess() {
 
   return {
     // progress
-    level: levelIndex + 1,      // show as X/195
-    score,                      // correct answers this run
-    bestScore,                  // persistent best
+    level: levelIndex + 1,
+    score,
+    bestScore,
     total: TOTAL_FLAGS,
 
     // state
     phase,
     question,
+    upcomingFirst, // <-- first flag that will appear on Level 1
 
     // actions
     start,
