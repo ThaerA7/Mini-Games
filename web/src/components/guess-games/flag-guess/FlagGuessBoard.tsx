@@ -58,7 +58,7 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
         style={{
           display: "grid",
           placeItems: "center",
-          padding: "18px 8px 10px",
+          padding: "10px 16px 16px 16px",
         }}
       >
         <div
@@ -74,8 +74,8 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
               svg
               /* removed title to avoid tooltip on hover */
               style={{
-                width: 320,
-                height: 240,
+                width: 456,
+                height: 342,
                 borderRadius: 8,
                 display: "block",
               }}
@@ -83,8 +83,8 @@ export default function FlagGuessBoard({ phase, question, onSubmit }: Props) {
           ) : (
             <div
               style={{
-                width: 320,
-                height: 240,
+                width: 480,
+                height: 342,
                 borderRadius: 8,
                 background: "rgba(255,255,255,0.06)",
               }}
