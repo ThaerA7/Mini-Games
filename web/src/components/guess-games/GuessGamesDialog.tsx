@@ -597,19 +597,23 @@ export default function GuessGamesOptionsDialog({ open, onOpenChange }: Props) {
   };
 
   const goItem = (groupKey: string, itemKey: string) => {
-    if (groupKey === "geo" && itemKey === "flags") {
-      navigate("/flags");
-    } else if (groupKey === "geo" && itemKey === "country-shape") {
-      navigate("/country-shape");
-    } else {
-      navigate(`/guess/${groupKey}/${itemKey}`);
-    }
-    onOpenChange(false);
-  };
+  if (groupKey === "geo" && itemKey === "flags") {
+    navigate("/flags");
+  } else if (groupKey === "geo" && itemKey === "country-shape") {
+    navigate("/country-shape");
+  } else if (groupKey === "geo" && itemKey === "capital-city") {
+    navigate("/guess/capital"); // <-- added (matches the CapitalGuessPage route)
+  } else {
+    navigate(`/guess/${groupKey}/${itemKey}`);
+  }
+  onOpenChange(false);
+};
 
   const isCategoryEnabled = (gKey: string) => gKey === "geo"; // Geography enabled
   const isItemEnabled = (itemKey: string) =>
-    itemKey === "flags" || itemKey === "country-shape";
+  itemKey === "flags" ||
+  itemKey === "country-shape" ||
+  itemKey === "capital-city";
 
   return (
     <Dialog

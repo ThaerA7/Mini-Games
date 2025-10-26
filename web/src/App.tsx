@@ -8,6 +8,7 @@ import ChimpTestPage from "./pages/memory_pages/ChimpTestPage";
 import NumberMemoryPage from "./pages/memory_pages/NumberMemoryPage";
 import FlagGuessPage from "./pages/guess_pages/FlagGuessPage";
 import MapShapeGuessPage from "./pages/guess_pages/MapShapeGuessPage";
+import CapitalGuessPage from "./pages/guess_pages/CapitalGuessPage";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
       <Route path="/number" element={<NumberMemoryPage />} />
       <Route path="/country-shape" element={<MapShapeGuessPage />} />
       <Route path="/flags" element={<FlagGuessPage />} />
+      <Route path="/guess/capital" element={<CapitalGuessPage />} />
     </Routes>
   );
 }
