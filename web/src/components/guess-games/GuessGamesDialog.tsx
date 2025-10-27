@@ -596,24 +596,27 @@ export default function GuessGamesOptionsDialog({ open, onOpenChange }: Props) {
     background: "rgba(255,255,255,0.04)",
   };
 
-  const goItem = (groupKey: string, itemKey: string) => {
-  if (groupKey === "geo" && itemKey === "flags") {
-    navigate("/flags");
-  } else if (groupKey === "geo" && itemKey === "country-shape") {
-    navigate("/country-shape");
-  } else if (groupKey === "geo" && itemKey === "capital-city") {
-    navigate("/guess/capital"); // <-- added (matches the CapitalGuessPage route)
-  } else {
-    navigate(`/guess/${groupKey}/${itemKey}`);
-  }
-  onOpenChange(false);
-};
+   const goItem = (groupKey: string, itemKey: string) => {
+if (groupKey === "geo" && itemKey === "flags") {
+  navigate("/flags");
+} else if (groupKey === "geo" && itemKey === "country-shape") {
+  navigate("/country-shape");
+} else if (groupKey === "geo" && itemKey === "capital-city") {
+  navigate("/guess/capital");
+} else if (groupKey === "geo" && itemKey === "currency") {
+  navigate("/guess/currency");
+} else {
+  navigate(`/guess/${groupKey}/${itemKey}`);
+}
+onOpenChange(false);
+ };
 
   const isCategoryEnabled = (gKey: string) => gKey === "geo"; // Geography enabled
   const isItemEnabled = (itemKey: string) =>
   itemKey === "flags" ||
   itemKey === "country-shape" ||
-  itemKey === "capital-city";
+  itemKey === "capital-city" ||
+   itemKey === "currency";
 
   return (
     <Dialog
