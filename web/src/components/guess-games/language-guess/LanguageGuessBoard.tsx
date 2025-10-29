@@ -2,19 +2,23 @@
 import * as React from "react";
 import type { LangQuestion } from "./useLanguageGuess";
 import { LANGUAGE_SUGGESTIONS } from "./languages";
+import { getLanguageHints } from "./languageHints";
 
 type Props = {
   phase: "idle" | "playing" | "won" | "wrong" | "finished";
   question: LangQuestion | null;
   onSubmit: (value: string) => void;
+  onHintReveal?: () => void;
 };
 
-export default function LanguageGuessBoard({ phase, question, onSubmit }: Props) {
+export default function LanguageGuessBoard({ phase, question, onSubmit, onHintReveal }: Props) {
   const disabled = phase !== "playing";
   const [guess, setGuess] = React.useState("");
+  const [hintCount, setHintCount] = React.useState(0);
 
   React.useEffect(() => {
     setGuess("");
+    setHintCount(0); // reset hints on new question / phase change
   }, [question?.code, phase]);
 
   const submit = () => {
@@ -56,6 +60,20 @@ export default function LanguageGuessBoard({ phase, question, onSubmit }: Props)
     transition: "transform .12s ease, box-shadow .2s ease, opacity .2s ease",
   };
 
+  // Lookup entry (not used in hints now, but handy if needed later)
+
+  const allHints = React.useMemo(() => {
+    if (!question) return [] as string[];
+    // Subtle: family, native speakers (broad), broad location
+    return getLanguageHints(question.code);
+  }, [question]);
+
+  const revealHint = () => {
+    if (disabled || hintCount >= 3) return;
+    setHintCount((c) => Math.min(3, c + 1)); // reveal up to 3
+    onHintReveal?.(); // NEW: increment global counter
+  };
+
   return (
     <div
       style={{
@@ -74,13 +92,12 @@ export default function LanguageGuessBoard({ phase, question, onSubmit }: Props)
         }}
       >
         <div style={{ width: 640, maxWidth: "94vw" }}>
-          
-
-          {/* Snippet card */}
+          {/* Snippet card — icon sits directly on this card */}
           <div
             lang={question?.code}
             dir={question?.dir}
             style={{
+              position: "relative", // anchor the icon to this card
               borderRadius: 12,
               padding: "20px 18px",
               background:
@@ -102,7 +119,70 @@ export default function LanguageGuessBoard({ phase, question, onSubmit }: Props)
             <span style={{ display: "block", maxWidth: 640 }}>
               {question ? question.sample : "—"}
             </span>
+
+            {/* Hint icon button — PURE ICON (no box, no border, no shadow) */}
+            <button
+              type="button"
+              onClick={revealHint}
+              disabled={disabled || hintCount >= 3}
+              title={
+                disabled
+                  ? "Hints are available during play"
+                  : hintCount < 3
+                  ? `Get hint ${hintCount + 1}/3`
+                  : "No more hints"
+              }
+              aria-label="Get a hint"
+              style={{
+                position: "absolute",
+                right: 8,
+                bottom: 10,
+                // pure icon look:
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+                padding: 0,
+                margin: 0,
+                width: "auto",
+                height: "auto",
+                borderRadius: 0,
+                // big, tappable emoji:
+                fontSize: 22,
+                lineHeight: 1,
+                color: "inherit",
+                cursor: disabled || hintCount >= 3 ? "not-allowed" : "pointer",
+                // no backdrop effects:
+                backdropFilter: "none",
+              }}
+            >
+              💡
+            </button>
           </div>
+
+          {/* Hints area (progressively revealed) */}
+          {hintCount > 0 && (
+            <div
+              aria-live="polite"
+              style={{
+                marginTop: 10,
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,.12)",
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04))",
+                boxShadow: "0 6px 16px rgba(0,0,0,.28)",
+                fontSize: 14.5,
+                lineHeight: 1.5,
+                color: "rgba(229,231,235,0.95)",
+              }}
+            >
+              {Array.from({ length: hintCount }).map((_, i) => (
+                <div key={i} style={{ marginBottom: i === hintCount - 1 ? 0 : 6 }}>
+                  <b>{`Hint ${i + 1}:`}</b> {allHints[i]}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

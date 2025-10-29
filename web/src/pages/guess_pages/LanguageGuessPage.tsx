@@ -21,6 +21,8 @@ export default function LanguageGuessPage() {
     submit,
     continueAfterWrong,
     total,
+    hintsUsed,
+  noteHint,
   } = useLanguageGuess();
 
   const [restartPressed, setRestartPressed] = React.useState(false);
@@ -108,7 +110,12 @@ export default function LanguageGuessPage() {
               margin: "0 auto",
             }}
           >
-            <LanguageGuessBoard phase={phase} question={displayQuestion} onSubmit={submit} />
+            <LanguageGuessBoard
+              phase={phase}
+              question={displayQuestion}
+              onSubmit={submit}
+             onHintReveal={noteHint} 
+            />
 
             {showOverlay && (
               <div
@@ -247,6 +254,8 @@ export default function LanguageGuessPage() {
                       <br />
                       Final score: <b>{score}/{TOTAL}</b>
                       <br />
+                       Hints used: <b>{hintsUsed}</b>
+                     <br />
                       Best score: <b>{bestScore}/{TOTAL}</b>
                     </div>
                     <button

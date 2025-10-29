@@ -14,7 +14,7 @@ export default function FlagGuessPage() {
     bestScore,
     phase,
     question,
-    upcomingFirst, // same flag as Level 1
+    upcomingFirst, 
     start,
     restart,
     nextLevel,

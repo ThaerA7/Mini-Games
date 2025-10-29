@@ -61,7 +61,7 @@ export function useLanguageGuess() {
     Number(localStorage.getItem(BEST_KEY) || 0)
   );
 
-  // Pre-shuffle the next run for preview
+  const [hintsUsed, setHintsUsed] = React.useState(0);
   const [pending, setPending] = React.useState<number[]>(() => shuffle(POOL_INDEXES));
   const firstQuestion = React.useMemo(() => makeQuestion(pending[0] ?? 0), [pending]);
 
@@ -75,6 +75,7 @@ export function useLanguageGuess() {
     setQueue(pending);
     setIdx(0);
     setScore(0);
+    setHintsUsed(0);
     setPhase("playing");
     setPending(shuffle(POOL_INDEXES));
   }, [pending]);
@@ -106,7 +107,11 @@ export function useLanguageGuess() {
       setPhase("playing");
     }
   };
-
+ const noteHint = React.useCallback(() => {
+    if (phase === "playing") {
+      setHintsUsed((n) => n + 1);
+    }
+  }, [phase]);
   return {
     level: idx + 1,
     score,
@@ -122,5 +127,7 @@ export function useLanguageGuess() {
     submit,
     nextLevel: goNext,
     continueAfterWrong: goNext,
+    hintsUsed,        
+   noteHint,
   };
 }
