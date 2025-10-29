@@ -11,6 +11,7 @@ import MapShapeGuessPage from "./pages/guess_pages/MapShapeGuessPage";
 import CapitalGuessPage from "./pages/guess_pages/CapitalGuessPage";
 import CurrencyGuessPage from "./pages/guess_pages/CurrencyGuessPage";
 import PopulationGuessPage from "./pages/guess_pages/PopulationGuessPage"; // ← NEW
+import LanguageGuessPage from "./pages/guess_pages/LanguageGuessPage";
 
 export default function App() {
   return (
@@ -26,7 +27,9 @@ export default function App() {
       <Route path="/flags" element={<FlagGuessPage />} />
       <Route path="/guess/capital" element={<CapitalGuessPage />} />
       <Route path="/guess/currency" element={<CurrencyGuessPage />} />
-      <Route path="/guess/population" element={<PopulationGuessPage />} /> {/* NEW */}
+      <Route path="/guess/population" element={<PopulationGuessPage />} /> 
+      <Route path="/guess/language" element={<LanguageGuessPage />} />
+
     </Routes>
   );
 }

@@ -605,8 +605,10 @@ export default function GuessGamesOptionsDialog({ open, onOpenChange }: Props) {
     navigate("/guess/capital");
   } else if (groupKey === "geo" && itemKey === "currency") {
     navigate("/guess/currency");
-  } else if (groupKey === "geo" && itemKey === "population-range") { // ← NEW
+  } else if (groupKey === "geo" && itemKey === "population-range") {
     navigate("/guess/population");
+  } else if (groupKey === "geo" && itemKey === "language-snippet") { // ← NEW
+    navigate("/guess/language");
   } else {
     navigate(`/guess/${groupKey}/${itemKey}`);
   }
@@ -619,7 +621,8 @@ export default function GuessGamesOptionsDialog({ open, onOpenChange }: Props) {
   itemKey === "country-shape" ||
   itemKey === "capital-city" ||
   itemKey === "currency" ||
-  itemKey === "population-range";
+  itemKey === "population-range" ||
+  itemKey === "language-snippet";
 
   return (
     <Dialog
