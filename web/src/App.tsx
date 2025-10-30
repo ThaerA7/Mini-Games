@@ -12,6 +12,7 @@ import CapitalGuessPage from "./pages/guess_pages/CapitalGuessPage";
 import CurrencyGuessPage from "./pages/guess_pages/CurrencyGuessPage";
 import PopulationGuessPage from "./pages/guess_pages/PopulationGuessPage"; // ← NEW
 import LanguageGuessPage from "./pages/guess_pages/LanguageGuessPage";
+import EmojiCountryGuessPage from "./pages/guess_pages/EmojiCountryGuessPage";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
       <Route path="/guess/currency" element={<CurrencyGuessPage />} />
       <Route path="/guess/population" element={<PopulationGuessPage />} /> 
       <Route path="/guess/language" element={<LanguageGuessPage />} />
+<Route path="/guess/emoji-country" element={<EmojiCountryGuessPage />} />
 
     </Routes>
   );
