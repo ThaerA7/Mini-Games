@@ -596,37 +596,33 @@ export default function GuessGamesOptionsDialog({ open, onOpenChange }: Props) {
     background: "rgba(255,255,255,0.04)",
   };
 
-   const goItem = (groupKey: string, itemKey: string) => {
-  if (groupKey === "geo" && itemKey === "flags") {
-    navigate("/flags");
-  } else if (groupKey === "geo" && itemKey === "country-shape") {
-    navigate("/country-shape");
-  } else if (groupKey === "geo" && itemKey === "capital-city") {
-    navigate("/guess/capital");
-  } else if (groupKey === "geo" && itemKey === "currency") {
-    navigate("/guess/currency");
-  } else if (groupKey === "geo" && itemKey === "population-range") {
-    navigate("/guess/population");
-  } else if (groupKey === "geo" && itemKey === "language-snippet") { 
-    
-    navigate("/guess/language");
-    } else if (groupKey === "geo" && itemKey === "emoji-country") { // ← NEW
-    navigate("/guess/emoji-country");
-  } else {
-    navigate(`/guess/${groupKey}/${itemKey}`);
-  }
-  onOpenChange(false);
-};
+  const goItem = (groupKey: string, itemKey: string) => {
+    if (groupKey === "geo" && itemKey === "flags") {
+      navigate("/flags");
+    } else if (groupKey === "geo" && itemKey === "country-shape") {
+      navigate("/country-shape");
+    } else if (groupKey === "geo" && itemKey === "capital-city") {
+      navigate("/guess/capital");
+    } else if (groupKey === "geo" && itemKey === "currency") {
+      navigate("/guess/currency");
+    } else if (groupKey === "geo" && itemKey === "population-range") {
+      navigate("/guess/population");
+    } else if (groupKey === "geo" && itemKey === "language-snippet") {
+      navigate("/guess/language");
+    } else {
+      navigate(`/guess/${groupKey}/${itemKey}`);
+    }
+    onOpenChange(false);
+  };
 
   const isCategoryEnabled = (gKey: string) => gKey === "geo"; // Geography enabled
   const isItemEnabled = (itemKey: string) =>
-  itemKey === "flags" ||
-  itemKey === "country-shape" ||
-  itemKey === "capital-city" ||
-  itemKey === "currency" ||
-  itemKey === "population-range" ||
-  itemKey === "language-snippet"||
-  itemKey === "emoji-country";
+    itemKey === "flags" ||
+    itemKey === "country-shape" ||
+    itemKey === "capital-city" ||
+    itemKey === "currency" ||
+    itemKey === "population-range" ||
+    itemKey === "language-snippet";
 
   return (
     <Dialog
