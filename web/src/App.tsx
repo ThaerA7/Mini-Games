@@ -14,6 +14,7 @@ import PopulationGuessPage from "./pages/guess_pages/PopulationGuessPage"; // â†
 import LanguageGuessPage from "./pages/guess_pages/LanguageGuessPage";
 import EmojiCountryGuessPage from "./pages/guess_pages/EmojiCountryGuessPage";
 import CrosswordPage from "./pages/crossword_pages/CrosswordPage";
+import BlockBlastPage from "./pages/Block_Blast_page/BlockBlastPage";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
       <Route path="/guess/language" element={<LanguageGuessPage />} />
 <Route path="/guess/emoji-country" element={<EmojiCountryGuessPage />} />
 <Route path="/crossword" element={<CrosswordPage />} />
+<Route path="/block-blast" element={<BlockBlastPage />} />
 
     </Routes>
   );

@@ -192,7 +192,32 @@ if (i === 2) {
               </div>
             );
           }
-
+if (i === 4) {
+  return (
+    <div
+      key="block-blast"
+      style={{
+        ...getBoxStyle(pressedIndex === i),
+        display: "grid",
+        placeItems: "center",
+      }}
+      onPointerDown={() => handlePointerDown(i)}
+      onPointerUp={clearPress}
+      onPointerLeave={clearPress}
+      onPointerCancel={clearPress}
+      onClick={() => navigate("/block-blast")}
+      aria-label="Open Block Blast"
+    >
+      <div
+        style={{ textAlign: "center", padding: "0 8px", lineHeight: 1.15 }}
+      >
+        <div style={{ fontSize: 32, marginBottom: 6 }}>🧱</div>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>Block</div>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>Blast</div>
+      </div>
+    </div>
+  );
+}
           // Placeholder / future games tiles
           return (
             <div
