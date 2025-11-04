@@ -1,5 +1,5 @@
-// components/crossword/CrosswordBoard.tsx
 import * as React from "react";
+import { generateCrossword } from "./generateCrossword";
 
 type Dir = "across" | "down";
 
@@ -8,9 +8,32 @@ export default function CrosswordBoard() {
   const CONTAINER = "min(94vw, 800px)";
   const size = 11;
 
-  // Grid letters; "#" means a block. Start empty.
+  // Generate a playable crossword (blocks pre-filled as "#")
+  const xw = React.useMemo(() => {
+    try {
+      return generateCrossword(size);
+    } catch (err) {
+      console.error("Crossword generation failed:", err);
+      // Graceful local fallback: empty open grid so the UI still renders.
+      const blocks = Array.from({ length: size }, () =>
+        Array.from({ length: size }, () => false)
+      );
+      return {
+        size,
+        blocks,
+        puzzleGrid: Array.from({ length: size }, () =>
+          Array.from({ length: size }, () => "")
+        ),
+        solutionGrid: Array.from({ length: size }, () =>
+          Array.from({ length: size }, () => "")
+        ),
+        clues: { across: [], down: [] },
+      };
+    }
+  }, [size]);
+
   const [grid, setGrid] = React.useState<string[][]>(() =>
-    Array.from({ length: size }, () => Array.from({ length: size }, () => ""))
+    xw.blocks.map((row) => row.map((b) => (b ? "#" : "")))
   );
 
   const [selected, setSelected] = React.useState<{ r: number; c: number } | null>(null);
@@ -56,50 +79,31 @@ export default function CrosswordBoard() {
 
   // --- helpers ---
   const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
-  const step = (delta: number) => {
-    if (!selected) return;
-    let { r, c } = selected;
-    if (dir === "across") c = clamp(c + delta, 0, size - 1);
-    else r = clamp(r + delta, 0, size - 1);
-    setSelected({ r, c });
-  };
 
-  const toggleBlock = (r: number, c: number) => {
-    setGrid((g) => {
-      const next = g.map((row) => row.slice());
-      next[r][c] = next[r][c] === "#" ? "" : "#";
-      return next;
-    });
-  };
-
-  const getWordCells = React.useCallback(
-    (r: number, c: number, d: Dir) => {
-      if (grid[r][c] === "#") return [];
-      const cells: Array<{ r: number; c: number }> = [];
-      let sr = r, sc = c;
-
-      // backward
-      while (true) {
-        const nr = d === "down" ? sr - 1 : sr;
-        const nc = d === "across" ? sc - 1 : sc;
-        if (nr < 0 || nc < 0 || grid[nr][nc] === "#") break;
-        sr = nr; sc = nc;
+  const step = React.useCallback(
+    (delta: number) => {
+      if (!selected) return;
+      let { r, c } = selected;
+      let attempts = 0;
+      while (attempts < size) {
+        if (dir === "across") c = clamp(c + delta, 0, size - 1);
+        else r = clamp(r + delta, 0, size - 1);
+        attempts++;
+        if (grid[r][c] !== "#") break;
+        // if we hit a block at edge, stop
+        if (
+          (dir === "across" && (c === 0 || c === size - 1)) ||
+          (dir === "down" && (r === 0 || r === size - 1))
+        ) {
+          break;
+        }
       }
-      // forward
-      let cr = sr, cc = sc;
-      while (cr < size && cc < size && grid[cr][cc] !== "#") {
-        cells.push({ r: cr, c: cc });
-        if (d === "down") cr += 1; else cc += 1;
-      }
-      return cells;
+      setSelected({ r, c });
     },
-    [grid, size]
+    [selected, dir, size, grid]
   );
 
-  const activeWordSet = React.useMemo(() => {
-    if (!selected) return new Set<string>();
-    return new Set(getWordCells(selected.r, selected.c, dir).map((p) => `${p.r}-${p.c}`));
-  }, [selected, dir, getWordCells]);
+
 
   // keyboard
   React.useEffect(() => {
@@ -117,10 +121,22 @@ export default function CrosswordBoard() {
 
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
         e.preventDefault();
-        if (e.key === "ArrowLeft") { setDir("across"); step(-1); }
-        if (e.key === "ArrowRight") { setDir("across"); step(1); }
-        if (e.key === "ArrowUp") { setDir("down"); step(-1); }
-        if (e.key === "ArrowDown") { setDir("down"); step(1); }
+        if (e.key === "ArrowLeft") {
+          setDir("across");
+          step(-1);
+        }
+        if (e.key === "ArrowRight") {
+          setDir("across");
+          step(1);
+        }
+        if (e.key === "ArrowUp") {
+          setDir("down");
+          step(-1);
+        }
+        if (e.key === "ArrowDown") {
+          setDir("down");
+          step(1);
+        }
         return;
       }
 
@@ -133,14 +149,7 @@ export default function CrosswordBoard() {
           if (next[r][c] !== "#") next[r][c] = "";
           return next;
         });
-        if (e.key === "Backspace") step(-1);
-        return;
-      }
-
-      if (e.key === "." || e.key === "#") {
-        e.preventDefault();
-        toggleBlock(r, c);
-        step(1);
+       
         return;
       }
 
@@ -152,7 +161,7 @@ export default function CrosswordBoard() {
           if (next[r][c] !== "#") next[r][c] = ch;
           return next;
         });
-        step(1);
+   
       }
     };
 
@@ -160,14 +169,24 @@ export default function CrosswordBoard() {
     return () => el.removeEventListener("keydown", onKey);
   }, [selected, dir, size, step]);
 
+  // Pick the first non-block cell once when the crossword changes
+  React.useEffect(() => {
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (!xw.blocks[r][c]) {
+          setSelected({ r, c });
+          return;
+        }
+      }
+    }
+  }, [xw, size]);
+
   const clearLetters = () => {
     setGrid((g) => g.map((row) => row.map((v) => (v === "#" ? "#" : ""))));
   };
 
   const clearAll = () => {
-    setGrid(Array.from({ length: size }, () =>
-      Array.from({ length: size }, () => "")
-    ));
+    setGrid(xw.blocks.map((row) => row.map((b) => (b ? "#" : ""))));
     setSelected(null);
     setDir("across");
   };
@@ -188,9 +207,7 @@ export default function CrosswordBoard() {
             color: "#e5e7eb",
           }}
         >
-          <div style={{ justifySelf: "start", fontWeight: 700 }}>
-            Crossword (Beta)
-          </div>
+          <div style={{ justifySelf: "start", fontWeight: 700 }}>Crossword (Beta)</div>
           <div style={{ justifySelf: "center" }} />
           <div style={{ justifySelf: "end", fontWeight: 700 }}>
             Direction: {dir === "across" ? "Across" : "Down"} • Size: {size}×{size}
@@ -204,16 +221,19 @@ export default function CrosswordBoard() {
         tabIndex={0}
         onClick={() => boardRef.current?.focus()}
         style={{
-          width: CONTAINER,          // match buttons
-          height: CONTAINER,         // keep it square and big
+          width: CONTAINER, // match buttons
+          height: CONTAINER, // keep it square and big
           display: "grid",
           gridTemplateColumns: `repeat(${size}, 1fr)`,
           gridTemplateRows: `repeat(${size}, 1fr)`,
-          background: "#000",
+          background: "#f1e6e6ff",
           borderRadius: 8,
           border: "2px solid #000",
           overflow: "hidden",
           outline: "none",
+          WebkitTapHighlightColor: "transparent",
+          WebkitTouchCallout: "none",
+          caretColor: "transparent",
           userSelect: "none",
           margin: "0 auto",
         }}
@@ -221,25 +241,16 @@ export default function CrosswordBoard() {
         {grid.map((row, r) =>
           row.map((val, c) => {
             const isSelected = selected?.r === r && selected?.c === c;
-            const isInWord = selected && activeWordSet.has(`${r}-${c}`) && !isSelected;
 
             const baseBg = val === "#" ? "#000" : "#fff"; // classic black & white
-            const bg = isSelected
-              ? "rgba(0,0,0,0.08)"
-              : isInWord
-                ? "rgba(0,0,0,0.04)"
-                : baseBg;
+            const bg = isSelected ? "rgba(0,0,0,0.08)" : baseBg;
 
             return (
               <div
                 key={`${r}-${c}`}
-                onClick={(e) => {
+                onClick={() => {
+                  if (grid[r][c] === "#") return;
                   setSelected({ r, c });
-                  if (e.detail === 2) toggleBlock(r, c);
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  toggleBlock(r, c);
                 }}
                 style={{
                   position: "relative",
@@ -253,6 +264,7 @@ export default function CrosswordBoard() {
                   borderRight: "1px solid #000", // thin lines only
                   borderBottom: "1px solid #000",
                   cursor: "pointer",
+                  WebkitTapHighlightColor: "transparent",
                 }}
                 aria-label={`r${r + 1} c${c + 1}`}
               >
@@ -329,20 +341,6 @@ export default function CrosswordBoard() {
             Reset
           </button>
         </div>
-      </div>
-
-      {/* How to play (same container width) */}
-      <div
-        style={{
-          margin: "0 auto",
-          width: CONTAINER,
-          color: "rgba(229,231,235,0.8)",
-          fontSize: 12,
-        }}
-      >
-        <b>How to play:</b> click a cell to select • type A–Z to fill • Backspace/Delete to erase •
-        Arrow keys move • <kbd>Space</kbd> toggles direction • Right-click (or “.” / “#”) to toggle
-        a block. Double-click a cell also toggles a block.
       </div>
     </div>
   );
