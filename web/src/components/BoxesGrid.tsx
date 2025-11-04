@@ -4,6 +4,7 @@ import SudokuOptionsDialog from "./sudoku/SudokuOptionsDialog";
 import SudokuImg from "../assets/Sudoku.png";
 import MemoryOptionsDialog from "./memory-games/visual-memory/MemoryOptionsDialog.tsx";
 import GuessGamesOptionsDialog from "./guess-games/GuessGamesDialog.tsx"; // ⬅️ NEW
+import { useNavigate } from "react-router-dom";
 
 export type Difficulty =
   | "easy"
@@ -19,6 +20,7 @@ export default function BoxesGrid() {
   const [sudokuOpen, setSudokuOpen] = React.useState(false);
   const [memoryOpen, setMemoryOpen] = React.useState(false);
   const [guessOpen, setGuessOpen] = React.useState(false);
+  const navigate = useNavigate();
 
   const baseBoxStyle: React.CSSProperties = {
     aspectRatio: "1 / 1",
@@ -166,6 +168,31 @@ if (i === 2) {
               </div>
             );
           }
+                    if (i === 3) {
+            // Crossword launcher (fourth grid)
+            return (
+              <div
+                key="crossword"
+                style={{
+                  ...getBoxStyle(pressedIndex === i),
+                  display: "grid",
+                  placeItems: "center",
+                }}
+                onPointerDown={() => handlePointerDown(i)}
+                onPointerUp={clearPress}
+                onPointerLeave={clearPress}
+                onPointerCancel={clearPress}
+                onClick={() => navigate("/crossword")}
+                aria-label="Open Crossword"
+              >
+                <div style={{ textAlign: "center", padding: "0 8px", lineHeight: 1.15 }}>
+                  <div style={{ fontSize: 32, marginBottom: 6 }}>✍️</div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>Crossword</div>
+                </div>
+              </div>
+            );
+          }
+
           // Placeholder / future games tiles
           return (
             <div
