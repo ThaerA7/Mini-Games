@@ -1,4 +1,3 @@
-// lib/crossword/generateCrossword.ts
 export type Clue = {
   number: number;
   row: number;
@@ -10,9 +9,9 @@ export type Clue = {
 
 export type Crossword = {
   size: number;
-  blocks: boolean[][];         // true => block
-  puzzleGrid: string[][];      // "" for empty, "#" never appears here (use blocks)
-  solutionGrid: string[][];    // letters + "#" for convenience
+  blocks: boolean[][]; // true => block
+  puzzleGrid: string[][]; // "" for empty, "#" never appears here (use blocks)
+  solutionGrid: string[][]; // letters + "#" for convenience
   clues: {
     across: Clue[];
     down: Clue[];
@@ -20,7 +19,7 @@ export type Crossword = {
 };
 
 type Slot = {
-  id: string;         // "A-1" / "D-12"
+  id: string; // "A-1" / "D-12"
   dir: "across" | "down";
   r: number;
   c: number;
@@ -28,78 +27,7 @@ type Slot = {
   number: number;
 };
 
-type Entry = { answer: string; clue: string };
-
-// ——————————————————————————————————————————
-// 1) A modest wordlist with varied lengths (3–11)
-const WORDS: Entry[] = [
-  { answer: "AREA", clue: "Two-dimensional measure" },
-  { answer: "ORBIT", clue: "Path around a star" },
-  { answer: "ATOM", clue: "Basic unit of matter" },
-  { answer: "ARRAY", clue: "Data structure of elements" },
-  { answer: "REACT", clue: "Popular front-end library" },
-  { answer: "STATE", clue: "Condition or mode" },
-  { answer: "DELTA", clue: "Letter after gamma" },
-  { answer: "RIVER", clue: "Natural watercourse" },
-  { answer: "PARIS", clue: "City on the Seine" },
-  { answer: "BERLIN", clue: "Brandenburg Gate city" },
-  { answer: "LONDON", clue: "City with the Thames" },
-  { answer: "PYTHON", clue: "Language with indentation" },
-  { answer: "SCRIPT", clue: "Text for a play" },
-  { answer: "EDITOR", clue: "One who revises text" },
-  { answer: "PUZZLE", clue: "Something to solve" },
-  { answer: "CLUE", clue: "Hint for a solver" },
-  { answer: "NODE", clue: "Graph vertex" },
-  { answer: "EDGE", clue: "Graph connection" },
-  { answer: "ALGORITHM", clue: "Step-by-step procedure" },
-  { answer: "GRADIENT", clue: "Slope in math or color" },
-  { answer: "NETWORK", clue: "Connected system" },
-  { answer: "COMPILER", clue: "Translator for source code" },
-  { answer: "BROWSER", clue: "Software to view the web" },
-  { answer: "ENGINEER", clue: "Problem solver by trade" },
-  { answer: "ROUTER", clue: "Network traffic director" },
-  { answer: "ARRAYS", clue: "Multiple linear containers" },
-  { answer: "LIST", clue: "Linear collection" },
-  { answer: "QUEUE", clue: "FIFO structure" },
-  { answer: "STACK", clue: "LIFO structure" },
-  { answer: "INPUT", clue: "What you type" },
-  { answer: "OUTPUT", clue: "What you get" },
-  { answer: "METRIC", clue: "Standard of measurement" },
-  { answer: "SUDOKU", clue: "Number-placement puzzle" },
-  { answer: "CROSSWORD", clue: "Black-and-white word puzzle" },
-  { answer: "ASYNC", clue: "Not happening at once" },
-  { answer: "KERNEL", clue: "Core of an OS" },
-  { answer: "SERVER", clue: "Provides resources on a network" },
-  { answer: "CLIENT", clue: "Consumer on a network" },
-  { answer: "VECTOR", clue: "Quantity with magnitude and direction" },
-  { answer: "MATRIX", clue: "Rectangular array in math" },
-  { answer: "REWRITE", clue: "Do over in new words" },
-  { answer: "THEME", clue: "Unifying idea" },
-  { answer: "LETTER", clue: "Alphabet member" },
-  { answer: "NUMBER", clue: "Mathematical value" },
-  { answer: "LATENCY", clue: "Delay on a network" },
-  { answer: "BANDWIDTH", clue: "Capacity of a link" },
-  { answer: "FRONTEND", clue: "UI side of a stack" },
-  { answer: "BACKEND", clue: "Server side of a stack" },
-  { answer: "DART", clue: "Language used with Flutter" },
-  { answer: "FLUTTER", clue: "UI toolkit by Google" },
-  { answer: "RECHARGE", clue: "Fill the battery again" },
-  { answer: "SOLDER", clue: "Join with molten metal" },
-  { answer: "PARSER", clue: "Component that builds ASTs" },
-  { answer: "CACHE", clue: "Speedy memory" },
-  { answer: "COOKIE", clue: "Small web token" },
-  { answer: "SESSION", clue: "Period of activity" },
-  { answer: "STORAGE", clue: "Place for keeping data" },
-  { answer: "MOBILE", clue: "Designed for phones" },
-  { answer: "DESKTOP", clue: "Designed for PCs" },
-  { answer: "BIT", clue: "Binary digit" },
-  { answer: "BYTE", clue: "Eight bits" },
-  { answer: "EMAIL", clue: "Electronic message" },
-  { answer: "LOGIN", clue: "Start a session" },
-  { answer: "TOKEN", clue: "Access credential" },
-  { answer: "SECRET", clue: "Keep it hidden" },
-  { answer: "SECURE", clue: "Safe from threats" },
-];
+import { WORDS, type Entry } from "./wordlist";
 
 // ——————————————————————————————————————————
 // 2) A fixed symmetric 11×11 pattern ('.' = open, '#' = block)
@@ -127,7 +55,8 @@ function patternToBlocks(size: number, pat: string[]): boolean[][] {
   // Ensure 180° symmetry just in case
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
-      const rr = size - 1 - r, cc = size - 1 - c;
+      const rr = size - 1 - r,
+        cc = size - 1 - c;
       if (blocks[r][c] !== blocks[rr][cc]) {
         blocks[rr][cc] = blocks[r][c];
       }
@@ -145,10 +74,10 @@ function findSlots(blocks: boolean[][]) {
   let number = 1;
 
   const isStartAcross = (r: number, c: number) =>
-    !blocks[r][c] && (c === 0 || blocks[r][c - 1]) && (c + 1 < size && !blocks[r][c + 1]);
+    !blocks[r][c] && (c === 0 || blocks[r][c - 1]) && c + 1 < size && !blocks[r][c + 1];
 
   const isStartDown = (r: number, c: number) =>
-    !blocks[r][c] && (r === 0 || blocks[r - 1][c]) && (r + 1 < size && !blocks[r + 1][c]);
+    !blocks[r][c] && (r === 0 || blocks[r - 1][c]) && r + 1 < size && !blocks[r + 1][c];
 
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
@@ -251,35 +180,34 @@ export function generateCrossword(size = 11): Crossword {
 
   // Backtracking fill
   const res = backtrack(solutionGrid, allSlots, WORDS, new Set());
-  if (!res) {
-    throw new Error("Failed to generate a fill with the current dictionary. Add more WORDS.");
-  }
 
-  // Compose solution grid
-  const filled = res.grid.map((row) => row.slice());
+  // Fallback: if fill fails, keep the empty solution so the UI still renders.
+  const filled = (res?.grid ?? solutionGrid).map((row) => row.slice());
 
-  // Build clues
-  const fillsById = res.fills; // id => Entry
+  // Build clues (only for filled slots)
+  const fillsById = res?.fills ?? {}; // id => Entry
   const toClues = (slots: Slot[]) =>
-    slots.map((s) => {
+    slots.flatMap((s) => {
       const entry = fillsById[s.id];
-      return {
-        number: s.number,
-        row: s.r,
-        col: s.c,
-        length: s.length,
-        answer: entry.answer,
-        clue: entry.clue,
-      } as Clue;
+      return entry
+        ? [
+            {
+              number: s.number,
+              row: s.r,
+              col: s.c,
+              length: s.length,
+              answer: entry.answer,
+              clue: entry.clue,
+            } as Clue,
+          ]
+        : [];
     });
 
   const acrossClues = toClues(across);
   const downClues = toClues(down);
 
   // Create puzzle (empty letters), keep blocks separately
-  const puzzleGrid = Array.from({ length: size }, (_, r) =>
-    Array.from({ length: size }, (_, c) => (blocks[r][c] ? "" : ""))
-  );
+  const puzzleGrid = Array.from({ length: size }, () => Array.from({ length: size }, () => ""));
 
   // Convert solution to string[][]
   const solutionGridStrings = filled.map((row) => row.map((ch) => ch as string));
@@ -295,10 +223,3 @@ export function generateCrossword(size = 11): Crossword {
     },
   };
 }
-
-// Example usage:
-// const xw = generateCrossword(11);
-// xw.puzzleGrid    // play grid (all empty letters)
-// xw.solutionGrid  // fully filled solution
-// xw.blocks        // where the blocks are
-// xw.clues.across / xw.clues.down
