@@ -10,26 +10,34 @@ type Piece = {
   shape: Shape;
 };
 
-const BOARD_SIZE = 10;
+const BOARD_SIZE = 8; // 1) 8x8
+const cellSize = "clamp(48px, 8.5vw, 72px)"; // big but responsive
+const lineGap = 3;                            // one place to control line thickness
+const lineColor = "rgba(0,0,0,0.9)";
+const uiGrey = "#555";
 
-// A small but fun set of shapes (relative coordinates, origin at top-left)
+// Outside frame (different color than inner grid lines) — not a border, just a wrapper background.
+const outerGap = 8;                                // thickness of the outside frame
+const outerColor = "rgba(50, 51, 54, 0.35)";        // choose any color you like
+
+// 4) A familiar set of shapes (like common block puzzle games)
+// All shapes are defined in their "natural" orientation; no rotation in-game.
 const SHAPES: Shape[] = [
   // 1
   [{ x: 0, y: 0 }],
+
   // 2-line
   [{ x: 0, y: 0 }, { x: 1, y: 0 }],
   [{ x: 0, y: 0 }, { x: 0, y: 1 }],
+
   // 3-line
   [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }],
   [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }],
-  // 2x2 square
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
-  // L (3)
-  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }],
+
   // 4-line
   [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }],
   [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 0, y: 3 }],
+
   // 5-line
   [
     { x: 0, y: 0 },
@@ -45,7 +53,19 @@ const SHAPES: Shape[] = [
     { x: 0, y: 3 },
     { x: 0, y: 4 },
   ],
-  // T (5)
+
+  // 2x2 square
+  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
+
+  // Corners (3 blocks) └ and ┐
+  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
+  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }],
+
+  // L (4 blocks) two orientations
+  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }],
+  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }],
+
+  // T (5 blocks)
   [
     { x: 0, y: 0 },
     { x: 1, y: 0 },
@@ -53,6 +73,10 @@ const SHAPES: Shape[] = [
     { x: 1, y: 1 },
     { x: 1, y: 2 },
   ],
+
+  // Z / S (3 blocks)
+  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }],
+  [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
 ];
 
 function emptyBoard(): Board {
@@ -143,21 +167,43 @@ export default function BlockBlastGame() {
   const [gameOver, setGameOver] = React.useState(false);
   const [history, setHistory] = React.useState<Snapshot[]>([]);
 
+  // 3) Drag & drop
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [cursor, setCursor] = React.useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [hoverAt, setHoverAt] = React.useState<Point | null>(null);
+
   const selectedPiece = bag.find((p) => p.id === selected) || null;
 
   const pushHistory = React.useCallback(() => {
-    setHistory((h) => [...h, { board: board.map(r => r.slice()) as Board, bag: bag.map(b => ({...b, shape: b.shape.map(pt => ({...pt}))})), score }]);
+    setHistory((h) => [
+      ...h,
+      {
+        board: board.map((r) => r.slice()) as Board,
+        bag: bag.map((b) => ({
+          ...b,
+          shape: b.shape.map((pt) => ({ ...pt })),
+        })),
+        score,
+      },
+    ]);
   }, [board, bag, score]);
 
   const undo = () => {
     setHistory((h) => {
       if (!h.length) return h;
       const last = h[h.length - 1];
-      setBoard(last.board.map(r => r.slice()) as Board);
-      setBag(last.bag.map(b => ({...b, shape: b.shape.map(pt => ({...pt}))})));
+      setBoard(last.board.map((r) => r.slice()) as Board);
+      setBag(
+        last.bag.map((b) => ({ ...b, shape: b.shape.map((pt) => ({ ...pt })) }))
+      );
       setScore(last.score);
       setSelected(null);
       setGameOver(false);
+      setDraggingId(null);
+      setHoverAt(null);
+      setCursor(null);
       return h.slice(0, -1);
     });
   };
@@ -169,6 +215,9 @@ export default function BlockBlastGame() {
     setScore(0);
     setGameOver(false);
     setHistory([]);
+    setDraggingId(null);
+    setHoverAt(null);
+    setCursor(null);
   };
 
   const tryPlaceAt = (x: number, y: number) => {
@@ -182,7 +231,7 @@ export default function BlockBlastGame() {
     next = cleared;
 
     const cellsPlaced = selectedPiece.shape.length;
-    const lineBonus = lines > 0 ? 10 * lines * lines : 0; // quadratic-ish bonus
+    const lineBonus = lines > 0 ? 10 * lines * lines : 0;
     setScore((s) => s + cellsPlaced + lineBonus);
 
     const remaining = bag.filter((p) => p.id !== selectedPiece.id);
@@ -192,13 +241,35 @@ export default function BlockBlastGame() {
     setBag(refill);
     setSelected(null);
 
-    // game over?
     const noMoves = !anyMoves(next, refill);
     if (noMoves) setGameOver(true);
   };
 
-  const cellSize = "min(9.8vw, 48px)";
-  const gap = 4;
+  // Global pointer listeners while dragging
+  React.useEffect(() => {
+    if (!draggingId) return;
+
+    const onMove = (e: PointerEvent) => {
+      setCursor({ x: e.clientX, y: e.clientY });
+    };
+    const onUp = () => {
+      if (draggingId && selectedPiece && hoverAt && canPlace(board, selectedPiece, hoverAt)) {
+        tryPlaceAt(hoverAt.x, hoverAt.y);
+      }
+      setDraggingId(null);
+      setHoverAt(null);
+      setCursor(null);
+      setSelected(null);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once: true });
+
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [draggingId, hoverAt, selectedPiece, board]);
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -220,8 +291,8 @@ export default function BlockBlastGame() {
             style={{
               fontSize: 12,
               padding: "2px 8px",
-              borderRadius: 8,
-              background: "rgba(255,255,255,0.06)",
+              borderRadius: 0,
+              background: uiGrey,
               border: "1px solid rgba(255,255,255,0.12)",
             }}
           >
@@ -243,98 +314,141 @@ export default function BlockBlastGame() {
         </div>
       </div>
 
-      {/* Board */}
+      {/* Board frame (outside color) */}
       <div
         style={{
-          position: "relative",
-          display: "grid",
-          gridTemplateColumns: `repeat(${BOARD_SIZE}, ${cellSize})`,
-          gridTemplateRows: `repeat(${BOARD_SIZE}, ${cellSize})`,
-          gap,
-          padding: gap,
-          borderRadius: 12,
-          background: "#0f172a",
-          border: "1px solid rgba(255,255,255,0.15)",
-          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-          userSelect: "none",
+          justifySelf: "center",      // center the board inside this component
+          padding: outerGap,          // thickness of the outside frame
+          background: outerColor,     // frame color (different from inner lineColor)
+          borderRadius: 0,
         }}
       >
-        {Array.from({ length: BOARD_SIZE * BOARD_SIZE }).map((_, i) => {
-          const x = i % BOARD_SIZE;
-          const y = Math.floor(i / BOARD_SIZE);
-          const filled = board[y][x] === 1;
+        {/* Board grid */}
+        <div
+          style={{
+            position: "relative",
+            display: "inline-grid",                         // shrink to content
+            width: "max-content",                           // prevents extra right area
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, ${cellSize})`,
+            gridTemplateRows: `repeat(${BOARD_SIZE}, ${cellSize})`,
+            gap: lineGap,                                   // inner line thickness
+            padding: lineGap,                               // shows lineColor in the padding gaps
+            border: "none",
+            borderRadius: 0,
+            background: lineColor,                          // appears in the gaps (inner grid lines)
+            boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+            userSelect: "none",
+          }}
+        >
+          {Array.from({ length: BOARD_SIZE * BOARD_SIZE }).map((_, i) => {
+            const x = i % BOARD_SIZE;
+            const y = Math.floor(i / BOARD_SIZE);
+            const filled = board[y][x] === 1;
 
-          // highlight preview (selected piece hover)
-          let preview = false;
-          if (selectedPiece) {
-            preview = canPlace(board, selectedPiece, { x, y });
-          }
+            // Show a ghost of the piece over the cells it would occupy while dragging
+            let ghost = false;
+            if (selectedPiece && hoverAt && canPlace(board, selectedPiece, hoverAt)) {
+              ghost = selectedPiece.shape.some(
+                ({ x: dx, y: dy }) => hoverAt.x + dx === x && hoverAt.y + dy === y
+              );
+            }
 
-          return (
+            return (
+              <div
+                key={i}
+                onClick={() => tryPlaceAt(x, y)}
+                onPointerEnter={() => {
+                  if (draggingId) setHoverAt({ x, y });
+                }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  // 2) cells with NO edges (no border/no radius). Black lines are the gaps.
+                  border: "none",
+                  borderRadius: 0,
+                  background: filled
+                    ? "linear-gradient(180deg, rgba(59,130,246,0.9), rgba(59,130,246,0.55))"
+                    : ghost
+                    ? "rgba(59,130,246,0.25)"
+                    : "rgba(255,255,255,0.06)",
+                  boxShadow: filled
+                    ? "inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px rgba(59,130,246,0.28)"
+                    : "none",
+                  cursor:
+                    (selectedPiece && !gameOver) || draggingId ? "pointer" : "default",
+                  transition: "background 100ms ease",
+                }}
+              />
+            );
+          })}
+
+          {/* Optional overlay to show where the pointer is when dragging (small circle) */}
+          {draggingId && cursor && (
             <div
-              key={i}
-              onClick={() => tryPlaceAt(x, y)}
               style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: 8,
-                background: filled
-                  ? "linear-gradient(180deg, rgba(59,130,246,0.85), rgba(59,130,246,0.55))"
-                  : preview
-                  ? "rgba(59,130,246,0.18)"
-                  : "rgba(255,255,255,0.06)",
-                border: filled
-                  ? "1px solid rgba(59,130,246,0.9)"
-                  : "1px solid rgba(255,255,255,0.10)",
-                boxShadow: filled
-                  ? "inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px rgba(59,130,246,0.28)"
-                  : "none",
-                cursor: selectedPiece && !gameOver ? "pointer" : "default",
-                transition: "background 120ms ease, transform 120ms ease",
+                position: "fixed",
+                left: cursor.x,
+                top: cursor.y,
+                transform: "translate(-50%, -50%)",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.6)",
+                pointerEvents: "none",
               }}
             />
-          );
-        })}
-        {gameOver && (
-          <div
-            role="dialog"
-            aria-label="Game over"
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "grid",
-              placeItems: "center",
-              background: "rgba(2,6,23,0.60)",
-              backdropFilter: "blur(2px)",
-            }}
-          >
+          )}
+
+          {gameOver && (
             <div
+              role="dialog"
+              aria-label="Game over"
               style={{
-                padding: "20px 18px",
-                borderRadius: 14,
-                background: "rgba(2,6,23,0.9)",
-                border: "1px solid rgba(255,255,255,0.14)",
-                color: "rgba(255,255,255,0.95)",
-                textAlign: "center",
-                width: 320,
+                position: "absolute",
+                inset: 0,
+                display: "grid",
+                placeItems: "center",
+                background: "rgba(2,6,23,0.60)",
+                backdropFilter: "blur(2px)",
               }}
             >
-              <div style={{ fontSize: 22, fontWeight: 900 }}>No Moves Left</div>
-              <div style={{ marginTop: 6, opacity: 0.85 }}>
-                Final score: {score}
-              </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
-                <button onClick={reset} style={primaryBtnStyle}>Play Again</button>
-                <button onClick={undo} style={btnStyle} disabled={!history.length}>
-                  Undo
-                </button>
+              <div
+                style={{
+                  padding: "20px 18px",
+                  borderRadius: 14,
+                  background: "rgba(2,6,23,0.9)",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  color: "rgba(255,255,255,0.95)",
+                  textAlign: "center",
+                  width: 320,
+                }}
+              >
+                <div style={{ fontSize: 22, fontWeight: 900 }}>No Moves Left</div>
+                <div style={{ marginTop: 6, opacity: 0.85 }}>
+                  Final score: {score}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    justifyContent: "center",
+                    marginTop: 14,
+                  }}
+                >
+                  <button onClick={reset} style={primaryBtnStyle}>
+                    Play Again
+                  </button>
+                  <button onClick={undo} style={btnStyle} disabled={!history.length}>
+                    Undo
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Pieces tray */}
+      {/* Pieces tray – shows exactly 3 pieces and supports drag */}
       <div
         style={{
           display: "flex",
@@ -344,9 +458,19 @@ export default function BlockBlastGame() {
         }}
       >
         {bag.map((p) => (
-          <button
+          <div
             key={p.id}
-            onClick={() => setSelected((cur) => (cur === p.id ? null : p.id))}
+            role="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              setSelected(p.id);
+              setDraggingId(p.id);
+              setCursor({ x: e.clientX, y: e.clientY });
+            }}
+            onClick={() => {
+              // allow simple click to select/deselect too
+              setSelected((cur) => (cur === p.id ? null : p.id));
+            }}
             style={{
               border: "1px solid rgba(255,255,255,0.12)",
               background:
@@ -356,17 +480,18 @@ export default function BlockBlastGame() {
               color: "white",
               borderRadius: 12,
               padding: 10,
-              cursor: "pointer",
+              cursor: "grab",
               boxShadow:
                 selected === p.id
                   ? "0 6px 22px rgba(59,130,246,0.35)"
                   : "none",
               transition: "transform 120ms ease, box-shadow 120ms ease",
+              touchAction: "none",
             }}
-            title="Click to select piece, then click a board cell to place"
+            title="Drag onto the board, or click to select then click a cell to place"
           >
             <MiniPiece shape={p.shape} />
-          </button>
+          </div>
         ))}
       </div>
     </div>
@@ -401,10 +526,12 @@ function MiniPiece({ shape }: { shape: Shape }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: `repeat(cols, 18px)`,
-        gridTemplateRows: `repeat(rows, 18px)`,
-        gap: 3,
-      } as React.CSSProperties}
+        gridTemplateColumns: `repeat(${cols}, 18px)`,
+        gridTemplateRows: `repeat(${rows}, 18px)`,
+        gap: lineGap,
+        background: lineColor, // show tiny separators same as board inner lines
+        padding: lineGap,
+      }}
     >
       {Array.from({ length: rows * cols }).map((_, i) => {
         const x = i % cols;
@@ -416,13 +543,11 @@ function MiniPiece({ shape }: { shape: Shape }) {
             style={{
               width: 18,
               height: 18,
-              borderRadius: 5,
+              border: "none",
+              borderRadius: 0,
               background: filled
-                ? "linear-gradient(180deg, rgba(59,130,246,0.9), rgba(59,130,246,0.6))"
+                ? "linear-gradient(180deg, rgba(59,130,246,0.95), rgba(59,130,246,0.65))"
                 : "rgba(255,255,255,0.06)",
-              border: filled
-                ? "1px solid rgba(59,130,246,0.95)"
-                : "1px solid rgba(255,255,255,0.12)",
             }}
           />
         );
