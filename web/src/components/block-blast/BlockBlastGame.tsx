@@ -1,206 +1,41 @@
 import React from "react";
+import {
+  // types
+  type Board,
+  type Piece,
+  type SlotPiece,
+  type Snapshot,
+  type Point,
+  type Shape,
+  // config
+  BOARD_SIZE,
+  cellSize,
+  lineGap,
+  lineColor,
+  outerGap,
+  outerColor,
+  CELL_RADIUS,
+  TRAY_PIECE_SIZE,
+  TRAY_GAP_FROM_BOARD,
+  GRAB_RADIUS_PX,
+  BLAST_DURATION_MS,
+  BLAST_STAGGER_MS,
+  OUTER_RADIUS,
+  // data & utils
+  PALETTE,
+  withAlpha,
+  colorIndexForShape,
+  shapeBounds,
+  emptyBoard,
+  trio,
+  canPlace,
+  place,
+  clearLines,
+  anyMoves,
+  microSnap,
+} from "./blockBlastCore";
 
-/** --- Types --- */
-type Cell = 0 | number; // 0 = empty, >0 = color index (1-based)
-type Board = Cell[][];
-type Point = { x: number; y: number };
-type Shape = Point[];
-type Piece = { id: string; shape: Shape };
-type SlotPiece = Piece | null;
-type Snapshot = { board: Board; bag: SlotPiece[]; score: number };
-
-/** --- Config / Styling --- */
-const BOARD_SIZE = 8;
-const cellSize = "clamp(48px, 8.5vw, 72px)";
-const lineGap = 3;
-const lineColor = "rgba(0,0,0,0.9)";
-const uiGrey = "#555";
-const outerGap = 8;
-const outerColor = "rgba(50, 51, 54, 0.35)";
-const CELL_RADIUS = 6;
-
-const TRAY_PIECE_SIZE = 26;     // bigger tray pieces
-const TRAY_GAP_FROM_BOARD = 6;  // tiny visual gap between board and tray
-
-// Very minimal forgiveness
-const GRAB_RADIUS_PX = 42;      // tray pickup radius
-// NO predictive hover. On drop/click allow only a 1-cell nudge on one axis:
-const MICRO_SNAP_ORDER: Point[] = [
-  { x: 1, y: 0 },
-  { x: -1, y: 0 },
-  { x: 0, y: 1 },
-  { x: 0, y: -1 },
-];
-
-// Line clear FX
-const BLAST_DURATION_MS = 480;
-const BLAST_STAGGER_MS = 26;
-
-/** --- Palette --- */
-const PALETTE: [string, string][] = [
-  ["rgba(59,130,246,0.95)", "rgba(59,130,246,0.65)"],
-  ["rgba(168,85,247,0.95)", "rgba(168,85,247,0.65)"],
-  ["rgba(34,197,94,0.95)", "rgba(34,197,94,0.65)"],
-  ["rgba(234,179,8,0.95)", "rgba(234,179,8,0.65)"],
-  ["rgba(249,115,22,0.95)", "rgba(249,115,22,0.65)"],
-  ["rgba(244,63,94,0.95)", "rgba(244,63,94,0.65)"],
-  ["rgba(20,184,166,0.95)", "rgba(20,184,166,0.65)"],
-  ["rgba(99,102,241,0.95)", "rgba(99,102,241,0.65)"],
-];
-
-const withAlpha = (rgba: string, a: number) =>
-  rgba.replace(
-    /rgba\((\d+),\s*(\d+),\s*(\d+),\s*([.\d]+)\)/,
-    (_, r, g, b) => `rgba(${r}, ${g}, ${b}, ${a})`
-  );
-
-/** --- Shapes --- */
-const SHAPES: Shape[] = [
-  [{ x: 0, y: 0 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }],
-  [{ x: 0, y: 0 }, { x: 0, y: 1 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }],
-  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }],
-  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 0, y: 3 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }],
-  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 0, y: 3 }, { x: 0, y: 4 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
-  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }],
-  [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 1, y: 1 }, { x: 1, y: 2 }],
-  [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }],
-  [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
-];
-
-/** --- Utils --- */
-const shapeKey = (shape: Shape) =>
-  shape
-    .slice()
-    .sort((a, b) => a.y - b.y || a.x - b.x)
-    .map((p) => `${p.x},${p.y}`)
-    .join("|");
-
-const colorIndexForShape = (shape: Shape) => {
-  const key = shapeKey(shape);
-  let h = 0 >>> 0;
-  for (let i = 0; i < key.length; i++) h = ((h * 31) + key.charCodeAt(i)) >>> 0;
-  return h % PALETTE.length;
-};
-
-function emptyBoard(): Board {
-  return Array.from({ length: BOARD_SIZE }, () =>
-    Array.from({ length: BOARD_SIZE }, () => 0 as Cell)
-  );
-}
-
-function randomPiece(): Piece {
-  const idx = Math.floor(Math.random() * SHAPES.length);
-  return { id: Math.random().toString(36).slice(2), shape: SHAPES[idx] };
-}
-function trio(): Piece[] {
-  return [randomPiece(), randomPiece(), randomPiece()];
-}
-
-/** Placement helpers */
-function canPlace(board: Board, piece: Piece, at: Point): boolean {
-  return piece.shape.every(({ x, y }) => {
-    const cx = at.x + x;
-    const cy = at.y + y;
-    return cy >= 0 && cy < BOARD_SIZE && cx >= 0 && cx < BOARD_SIZE && board[cy][cx] === 0;
-  });
-}
-function place(board: Board, piece: Piece, at: Point, val: number): Board {
-  const copy = board.map((row) => row.slice()) as Board;
-  piece.shape.forEach(({ x, y }) => {
-    copy[at.y + y][at.x + x] = val;
-  });
-  return copy;
-}
-
-/** Line clear returns affected cells (for FX) */
-function clearLines(board: Board): {
-  next: Board; cleared: number; rows: number[]; cols: number[]; cells: { x: number; y: number }[];
-} {
-  const rowsFull = board.map((row) => row.every((c) => c !== 0));
-  const colsFull = Array.from({ length: BOARD_SIZE }, (_, x) => board.every((row) => row[x] !== 0));
-
-  const rows: number[] = [];
-  const cols: number[] = [];
-  rowsFull.forEach((full, y) => full && rows.push(y));
-  colsFull.forEach((full, x) => full && cols.push(x));
-
-  const next = board.map((row) => row.slice()) as Board;
-  let cleared = 0;
-
-  rows.forEach((y) => {
-    cleared++;
-    for (let x = 0; x < BOARD_SIZE; x++) next[y][x] = 0;
-  });
-  cols.forEach((x) => {
-    cleared++;
-    for (let y = 0; y < BOARD_SIZE; y++) next[y][x] = 0;
-  });
-
-  const cells: { x: number; y: number }[] = [];
-  const seen = new Set<string>();
-  for (const y of rows) for (let x = 0; x < BOARD_SIZE; x++) { const k = `${x},${y}`; if (!seen.has(k)) { seen.add(k); cells.push({ x, y }); } }
-  for (const x of cols) for (let y = 0; y < BOARD_SIZE; y++) { const k = `${x},${y}`; if (!seen.has(k)) { seen.add(k); cells.push({ x, y }); } }
-
-  return { next, cleared, rows, cols, cells };
-}
-
-function anyMoves(board: Board, pieces: Piece[]): boolean {
-  for (const p of pieces) {
-    for (let y = 0; y < BOARD_SIZE; y++) {
-      for (let x = 0; x < BOARD_SIZE; x++) {
-        if (canPlace(board, p, { x, y })) return true;
-      }
-    }
-  }
-  return false;
-}
-
-/** Micro-snap: only allow shifting by ONE cell on ONE axis (no diagonals) */
-function microSnap(board: Board, piece: Piece, targetTL: Point): Point | null {
-  if (canPlace(board, piece, targetTL)) return targetTL;
-  for (const d of MICRO_SNAP_ORDER) {
-    const cand = { x: targetTL.x + d.x, y: targetTL.y + d.y };
-    if (canPlace(board, piece, cand)) return cand;
-  }
-  return null;
-}
-
-/** --- Buttons --- */
-const btnStyle: React.CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.18)",
-  background: "rgba(255,255,255,0.08)",
-  color: "white",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-const primaryBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  border: "1px solid rgba(59,130,246,0.55)",
-  background: "rgba(59,130,246,0.18)",
-  boxShadow: "0 6px 24px rgba(59,130,246,0.35)",
-};
-
-/** --- Render helpers --- */
-function shapeBounds(shape: Shape) {
-  const maxX = Math.max(...shape.map((p) => p.x));
-  const maxY = Math.max(...shape.map((p) => p.y));
-  return { cols: maxX + 1, rows: maxY + 1 };
-}
-
-/** MiniPiece: board-like edges WITHOUT any wrapper background.
- * We draw the dark separators using an outer box-shadow on each filled cell.
- * Grid gap is 0; the overlapping shadows create a lineColor seam between cells.
- */
+/** Small inline component that draws a miniature piece (used in tray). */
 function MiniPiece({
   shape,
   colorIdx,
@@ -213,7 +48,7 @@ function MiniPiece({
   const { cols, rows } = shapeBounds(shape);
   const [top, bottom] = PALETTE[colorIdx];
   const d = `${size}px`;
-  const edge = `${lineGap / 2}px`; // half on each neighbor → total ≈ lineGap
+  const edge = `${lineGap / 2}px`;
 
   return (
     <div
@@ -221,7 +56,7 @@ function MiniPiece({
         display: "inline-grid",
         gridTemplateColumns: `repeat(${cols}, ${d})`,
         gridTemplateRows: `repeat(${rows}, ${d})`,
-        gap: 0, // no wrapper background; edges come from cell box-shadows
+        gap: 0,
       }}
     >
       {Array.from({ length: rows * cols }).map((_, i) => {
@@ -238,10 +73,8 @@ function MiniPiece({
               background: filled
                 ? `linear-gradient(180deg, ${top}, ${bottom})`
                 : "transparent",
-              // bevel + outer stroke to simulate board lines between cells
               boxShadow: filled
-                ? `inset 0 -2px 0 rgba(255,255,255,0.12),
-                   0 0 0 ${edge} ${lineColor}`
+                ? `inset 0 -2px 0 rgba(255,255,255,0.12), 0 0 0 ${edge} ${lineColor}`
                 : "none",
             }}
           />
@@ -251,6 +84,7 @@ function MiniPiece({
   );
 }
 
+/** Floating piece that follows the cursor while dragging. */
 function GrabbedPiece({
   shape,
   colorIdx,
@@ -299,8 +133,7 @@ function GrabbedPiece({
                   ? `linear-gradient(180deg, ${top}, ${bottom})`
                   : "transparent",
                 boxShadow: filled
-                  ? `inset 0 -2px 0 rgba(255,255,255,0.12),
-                     0 4px 18px ${withAlpha(bottom, 0.28)}`
+                  ? `inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px ${withAlpha(bottom, 0.28)}`
                   : "none",
               }}
             />
@@ -311,7 +144,109 @@ function GrabbedPiece({
   );
 }
 
-/** --- Component --- */
+/** --- Icons --- */
+const iconStyle: React.CSSProperties = { display: "block" };
+
+function IconUndo(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      style={iconStyle}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="9 14 4 9 9 4" />
+      <path d="M20 20a8 8 0 0 0-8-8H4" />
+    </svg>
+  );
+}
+
+function IconRestart(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      style={iconStyle}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="3 6 3 12 9 12" />
+      <path d="M21 12a9 9 0 1 1-9-9" />
+    </svg>
+  );
+}
+
+function IconTrophy(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      style={iconStyle}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+      <path d="M7 4h10" />
+      <path d="M17 4v4a5 5 0 0 1-10 0V4" />
+      <path d="M7 8H4a2 2 0 1 0 0 4h2" />
+      <path d="M17 8h3a2 2 0 1 1 0 4h-2" />
+    </svg>
+  );
+}
+
+/** --- Buttons (styled to match board frame) --- */
+const btnBase: React.CSSProperties = {
+  padding: "10px 14px",
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.14)",
+  background: "rgba(40, 42, 48, 0.35)", // neutral/translucent
+  color: "white",
+  fontWeight: 700,
+  cursor: "pointer",
+  backdropFilter: "blur(2px)",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+};
+const btnStyle: React.CSSProperties = {
+  ...btnBase,
+};
+const primaryBtnStyle: React.CSSProperties = {
+  ...btnBase,
+  border: "1px solid rgba(59,130,246,0.45)",
+  background: "rgba(59,130,246,0.18)",
+  // no glow
+  boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+};
+
+/** Score pill styled like a button, but non-interactive */
+const scorePillStyle: React.CSSProperties = {
+  ...btnBase,
+  cursor: "default",
+  userSelect: "none",
+};
+
 export default function BlockBlastGame() {
   const [board, setBoard] = React.useState<Board>(() => emptyBoard());
   const [bag, setBag] = React.useState<SlotPiece[]>(() => trio());
@@ -322,7 +257,9 @@ export default function BlockBlastGame() {
 
   // Drag state (by slot index!)
   const [draggingSlot, setDraggingSlot] = React.useState<number | null>(null);
-  const [cursor, setCursor] = React.useState<{ x: number; y: number } | null>(null);
+  const [cursor, setCursor] = React.useState<{ x: number; y: number } | null>(
+    null
+  );
   const [hoverAt, setHoverAt] = React.useState<Point | null>(null);
 
   // Line-blast FX
@@ -331,12 +268,11 @@ export default function BlockBlastGame() {
 
   const boardRef = React.useRef<HTMLDivElement | null>(null);
 
-  const selectedPiece: Piece | null = selectedSlot != null ? bag[selectedSlot] : null;
-  const selectedColorIdx = selectedPiece ? colorIndexForShape(selectedPiece.shape) : 0;
-
-  // Constant tray height (no layout jump). We removed mini grid gaps, so height = rows * size.
-  const MAX_ROWS = React.useMemo(() => Math.max(...SHAPES.map((s) => shapeBounds(s).rows)), []);
-  const TRAY_SLOT_HEIGHT = MAX_ROWS * TRAY_PIECE_SIZE;
+  const selectedPiece: Piece | null =
+    selectedSlot != null ? (bag[selectedSlot] as Piece | null) : null;
+  const selectedColorIdx = selectedPiece
+    ? colorIndexForShape(selectedPiece.shape)
+    : 0;
 
   const pushHistory = React.useCallback(() => {
     setHistory((h) => [
@@ -365,7 +301,9 @@ export default function BlockBlastGame() {
       const last = h[h.length - 1];
       setBoard(last.board.map((r) => r.slice()) as Board);
       setBag(
-        last.bag.map((p) => (p ? { id: p.id, shape: p.shape.map((pt) => ({ ...pt })) } : null))
+        last.bag.map((p) =>
+          p ? { id: p.id, shape: p.shape.map((pt) => ({ ...pt })) } : null
+        )
       );
       setScore(last.score);
       setSelectedSlot(null);
@@ -441,10 +379,13 @@ export default function BlockBlastGame() {
         map[`${c.x},${c.y}`] = d * BLAST_STAGGER_MS;
       }
       setBlastMap(map);
-      blastTimerRef.current = window.setTimeout(() => {
-        setBlastMap({});
-        blastTimerRef.current = null;
-      }, BLAST_DURATION_MS + 6 * BLAST_STAGGER_MS);
+      blastTimerRef.current = window.setTimeout(
+        () => {
+          setBlastMap({});
+          blastTimerRef.current = null;
+        },
+        BLAST_DURATION_MS + 6 * BLAST_STAGGER_MS
+      );
     }
 
     const available = newBag.filter((p): p is Piece => !!p);
@@ -452,31 +393,34 @@ export default function BlockBlastGame() {
   };
 
   /** Map pointer to board cell (null if outside). */
-  const cellFromPoint = React.useCallback((clientX: number, clientY: number): Point | null => {
-    const el = boardRef.current;
-    if (!el) return null;
-    const rect = el.getBoundingClientRect();
+  const cellFromPoint = React.useCallback(
+    (clientX: number, clientY: number): Point | null => {
+      const el = boardRef.current;
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
 
-    const left = rect.left + lineGap;
-    const top = rect.top + lineGap;
-    if (clientX < left || clientY < top) return null;
+      const left = rect.left + lineGap;
+      const top = rect.top + lineGap;
+      if (clientX < left || clientY < top) return null;
 
-    const innerW = rect.width - 2 * lineGap;
-    const innerH = rect.height - 2 * lineGap;
-    const totalGapsW = (BOARD_SIZE - 1) * lineGap;
-    const totalGapsH = (BOARD_SIZE - 1) * lineGap;
-    const cellW = (innerW - totalGapsW) / BOARD_SIZE;
-    const cellH = (innerH - totalGapsH) / BOARD_SIZE;
+      const innerW = rect.width - 2 * lineGap;
+      const innerH = rect.height - 2 * lineGap;
+      const totalGapsW = (BOARD_SIZE - 1) * lineGap;
+      const totalGapsH = (BOARD_SIZE - 1) * lineGap;
+      const cellW = (innerW - totalGapsW) / BOARD_SIZE;
+      const cellH = (innerH - totalGapsH) / BOARD_SIZE;
 
-    const gx = (clientX - left) / (cellW + lineGap);
-    const gy = (clientY - top) / (cellH + lineGap);
-    const x = Math.floor(gx);
-    const y = Math.floor(gy);
-    if (x < 0 || y < 0 || x >= BOARD_SIZE || y >= BOARD_SIZE) return null;
-    return { x, y };
-  }, []);
+      const gx = (clientX - left) / (cellW + lineGap);
+      const gy = (clientY - top) / (cellH + lineGap);
+      const x = Math.floor(gx);
+      const y = Math.floor(gy);
+      if (x < 0 || y < 0 || x >= BOARD_SIZE || y >= BOARD_SIZE) return null;
+      return { x, y };
+    },
+    []
+  );
 
-  /** Drag: update cursor + exact hover cell; NO predictive ghost. On drop use micro-snap (±1 cell). */
+  /** Drag: update cursor + exact hover cell; no predictive ghost. */
   React.useEffect(() => {
     if (draggingSlot == null) return;
     const onMove = (e: PointerEvent) => {
@@ -506,9 +450,12 @@ export default function BlockBlastGame() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [draggingSlot, hoverAt, selectedPiece, board]);
+  }, [draggingSlot, hoverAt, selectedPiece, board, cellFromPoint]);
 
-  const blastSet = React.useMemo(() => new Set(Object.keys(blastMap)), [blastMap]);
+  const blastSet = React.useMemo(
+    () => new Set(Object.keys(blastMap)),
+    [blastMap]
+  );
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -540,24 +487,67 @@ export default function BlockBlastGame() {
         }
       `}</style>
 
-      {/* Header */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", color: "rgba(255,255,255,0.95)", fontWeight: 700, letterSpacing: 0.3 }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span>Score: {score}</span>
-          <span style={{ fontSize: 12, padding: "2px 8px", background: uiGrey, border: "1px solid rgba(255,255,255,0.12)" }}>
-            {history.length} undo
-          </span>
+      {/* Width-synced column: header + board + tray share the same width */}
+      <div
+        style={{
+          justifySelf: "center",
+          display: "inline-flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          gap: 12,
+          width: "fit-content",
+        }}
+      >
+        {/* Header WITHOUT background; score is in a pill like the buttons */}
+        <div style={{ alignSelf: "center", width: "100%" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              justifyContent: "space-between",
+              color: "rgba(255,255,255,0.95)",
+              fontWeight: 700,
+              letterSpacing: 0.3,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <div
+              style={scorePillStyle}
+              aria-label={`Score ${score}`}
+              title="Current score"
+            >
+              <IconTrophy />
+              <span>Score: {score}</span>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={undo}
+                disabled={!history.length || gameOver}
+                style={btnStyle}
+                title="Undo"
+              >
+                <IconUndo />
+                Undo
+              </button>
+              <button onClick={reset} style={primaryBtnStyle} title="New Game">
+                <IconRestart />
+                New&nbsp;Game
+              </button>
+            </div>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={undo} disabled={!history.length || gameOver} style={btnStyle} title="Undo">Undo</button>
-          <button onClick={reset} style={primaryBtnStyle} title="New Game">New Game</button>
-        </div>
-      </div>
 
-      {/* Column wrapper: board + tray share width */}
-      <div style={{ justifySelf: "center", display: "inline-flex", flexDirection: "column", alignItems: "stretch", gap: 12 }}>
         {/* Board frame */}
-        <div style={{ padding: outerGap, background: outerColor, borderRadius: 0, alignSelf: "center" }}>
+        <div
+          style={{
+            padding: outerGap,
+            background: outerColor,
+            borderRadius: OUTER_RADIUS,
+            alignSelf: "center",
+          }}
+        >
           <div
             ref={boardRef}
             style={{
@@ -588,7 +578,8 @@ export default function BlockBlastGame() {
                 const topLeft = { x: hoverAt.x - ax, y: hoverAt.y - ay };
                 if (canPlace(board, selectedPieceLocal, topLeft)) {
                   ghost = selectedPieceLocal.shape.some(
-                    ({ x: dx, y: dy }) => topLeft.x + dx === x && topLeft.y + dy === y
+                    ({ x: dx, y: dy }) =>
+                      topLeft.x + dx === x && topLeft.y + dy === y
                   );
                 }
               }
@@ -625,18 +616,29 @@ export default function BlockBlastGame() {
                       ? withAlpha(top, 0.25)
                       : "rgba(255,255,255,0.06)",
                     boxShadow: filled
-                      ? `inset 0 -2px 0 rgba(255,255,255,0.12),
-                         0 4px 18px ${withAlpha(bottom, 0.28)}`
+                      ? `inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px ${withAlpha(bottom, 0.28)}`
                       : "none",
-                    cursor: (selectedPiece && !gameOver) || draggingSlot != null ? "pointer" : "default",
+                    cursor:
+                      (selectedPiece && !gameOver) || draggingSlot != null
+                        ? "pointer"
+                        : "default",
                     transition: "background 100ms ease",
                     borderRadius: CELL_RADIUS,
                   }}
                 >
                   {isBlast && (
-                    <div className="blastFx" style={{ animationDelay: `${delay}ms` }}>
-                      <div className="blastGlow" style={{ animationDelay: `${delay}ms` }} />
-                      <div className="blastRing" style={{ animationDelay: `${delay}ms` }} />
+                    <div
+                      className="blastFx"
+                      style={{ animationDelay: `${delay}ms` }}
+                    >
+                      <div
+                        className="blastGlow"
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
+                      <div
+                        className="blastRing"
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
                     </div>
                   )}
                 </div>
@@ -644,20 +646,55 @@ export default function BlockBlastGame() {
             })}
 
             {gameOver && (
-              <div role="dialog" aria-label="Game over" style={{
-                position: "absolute", inset: 0, display: "grid", placeItems: "center",
-                background: "rgba(2,6,23,0.60)", backdropFilter: "blur(2px)",
-              }}>
-                <div style={{
-                  padding: "20px 18px", borderRadius: 14, background: "rgba(2,6,23,0.9)",
-                  border: "1px solid rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.95)",
-                  textAlign: "center", width: 320,
-                }}>
-                  <div style={{ fontSize: 22, fontWeight: 900 }}>No Moves Left</div>
-                  <div style={{ marginTop: 6, opacity: 0.85 }}>Final score: {score}</div>
-                  <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
-                    <button onClick={reset} style={primaryBtnStyle}>Play Again</button>
-                    <button onClick={undo} style={btnStyle} disabled={!history.length}>Undo</button>
+              <div
+                role="dialog"
+                aria-label="Game over"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  background: "rgba(2,6,23,0.60)",
+                  backdropFilter: "blur(2px)",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "20px 18px",
+                    borderRadius: 14,
+                    background: "rgba(2,6,23,0.9)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    color: "rgba(255,255,255,0.95)",
+                    textAlign: "center",
+                    width: 320,
+                  }}
+                >
+                  <div style={{ fontSize: 22, fontWeight: 900 }}>
+                    No Moves Left
+                  </div>
+                  <div style={{ marginTop: 6, opacity: 0.85 }}>
+                    Final score: {score}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      justifyContent: "center",
+                      marginTop: 14,
+                    }}
+                  >
+                    <button onClick={reset} style={primaryBtnStyle}>
+                      <IconRestart />
+                      Play&nbsp;Again
+                    </button>
+                    <button
+                      onClick={undo}
+                      style={btnStyle}
+                      disabled={!history.length}
+                    >
+                      <IconUndo />
+                      Undo
+                    </button>
                   </div>
                 </div>
               </div>
@@ -675,7 +712,7 @@ export default function BlockBlastGame() {
             alignItems: "center",
             justifyItems: "stretch",
             marginTop: TRAY_GAP_FROM_BOARD,
-            minHeight: TRAY_SLOT_HEIGHT,
+            minHeight: TRAY_PIECE_SIZE * 5,
           }}
         >
           {[0, 1, 2].map((slotIdx) => {
@@ -689,8 +726,9 @@ export default function BlockBlastGame() {
                 onPointerDown={
                   p
                     ? (e) => {
-                        // start drag only if within grab radius from slot center
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        const rect = (
+                          e.currentTarget as HTMLElement
+                        ).getBoundingClientRect();
                         const cx = rect.left + rect.width / 2;
                         const cy = rect.top + rect.height / 2;
                         const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
@@ -703,9 +741,16 @@ export default function BlockBlastGame() {
                       }
                     : undefined
                 }
-                onClick={p ? () => setSelectedSlot((cur) => (cur === slotIdx ? null : slotIdx)) : undefined}
+                onClick={
+                  p
+                    ? () =>
+                        setSelectedSlot((cur) =>
+                          cur === slotIdx ? null : slotIdx
+                        )
+                    : undefined
+                }
                 style={{
-                  height: TRAY_SLOT_HEIGHT,
+                  height: TRAY_PIECE_SIZE * 5,
                   width: "100%",
                   display: "grid",
                   placeItems: "center",
@@ -713,10 +758,18 @@ export default function BlockBlastGame() {
                   touchAction: "none",
                   cursor: p ? "grab" : "default",
                 }}
-                title={p ? "Drag onto the board, or click to select then click a cell to place" : undefined}
+                title={
+                  p
+                    ? "Drag onto the board, or click to select then click a cell to place"
+                    : undefined
+                }
               >
                 {p && (
-                  <div style={{ visibility: isDraggingThis ? "hidden" : "visible" }}>
+                  <div
+                    style={{
+                      visibility: isDraggingThis ? "hidden" : "visible",
+                    }}
+                  >
                     <MiniPiece
                       shape={p.shape}
                       colorIdx={colorIndexForShape(p.shape)}
