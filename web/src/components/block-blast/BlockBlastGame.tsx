@@ -27,12 +27,15 @@ import {
   colorIndexForShape,
   shapeBounds,
   emptyBoard,
-  trio,
   canPlace,
   place,
   clearLines,
   anyMoves,
   microSnap,
+  // NEW difficulty-aware helpers
+  trioForScore,
+  difficultyForScore,
+  SCORE_MULTIPLIER,
 } from "./blockBlastCore";
 
 /** Small inline component that draws a miniature piece (used in tray). */
@@ -133,7 +136,10 @@ function GrabbedPiece({
                   ? `linear-gradient(180deg, ${top}, ${bottom})`
                   : "transparent",
                 boxShadow: filled
-                  ? `inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px ${withAlpha(bottom, 0.28)}`
+                  ? `inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px ${withAlpha(
+                      bottom,
+                      0.28
+                    )}`
                   : "none",
               }}
             />
@@ -219,7 +225,7 @@ const btnBase: React.CSSProperties = {
   padding: "10px 14px",
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.14)",
-  background: "rgba(40, 42, 48, 0.35)", // neutral/translucent
+  background: "rgba(40, 42, 48, 0.35)",
   color: "white",
   fontWeight: 700,
   cursor: "pointer",
@@ -229,14 +235,11 @@ const btnBase: React.CSSProperties = {
   alignItems: "center",
   gap: 8,
 };
-const btnStyle: React.CSSProperties = {
-  ...btnBase,
-};
+const btnStyle: React.CSSProperties = { ...btnBase };
 const primaryBtnStyle: React.CSSProperties = {
   ...btnBase,
   border: "1px solid rgba(59,130,246,0.45)",
   background: "rgba(59,130,246,0.18)",
-  // no glow
   boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
 };
 
@@ -249,7 +252,7 @@ const scorePillStyle: React.CSSProperties = {
 
 export default function BlockBlastGame() {
   const [board, setBoard] = React.useState<Board>(() => emptyBoard());
-  const [bag, setBag] = React.useState<SlotPiece[]>(() => trio());
+  const [bag, setBag] = React.useState<SlotPiece[]>(() => trioForScore(0));
   const [selectedSlot, setSelectedSlot] = React.useState<number | null>(null);
   const [score, setScore] = React.useState(0);
   const [gameOver, setGameOver] = React.useState(false);
@@ -265,6 +268,10 @@ export default function BlockBlastGame() {
   // Line-blast FX
   const [blastMap, setBlastMap] = React.useState<Record<string, number>>({});
   const blastTimerRef = React.useRef<number | null>(null);
+
+  // NEW: scoring meta
+  const [combo, setCombo] = React.useState(0); // increments on consecutive clears
+  const [lastClear, setLastClear] = React.useState(false);
 
   const boardRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -311,6 +318,8 @@ export default function BlockBlastGame() {
       setDraggingSlot(null);
       setHoverAt(null);
       setCursor(null);
+      setCombo(0);
+      setLastClear(false);
       clearBlast();
       return h.slice(0, -1);
     });
@@ -318,7 +327,7 @@ export default function BlockBlastGame() {
 
   const reset = () => {
     setBoard(emptyBoard());
-    setBag(trio());
+    setBag(trioForScore(0));
     setSelectedSlot(null);
     setScore(0);
     setGameOver(false);
@@ -326,6 +335,8 @@ export default function BlockBlastGame() {
     setDraggingSlot(null);
     setHoverAt(null);
     setCursor(null);
+    setCombo(0);
+    setLastClear(false);
     clearBlast();
   };
 
@@ -335,12 +346,12 @@ export default function BlockBlastGame() {
       const nextBag = bag.slice();
       nextBag[slotIdx] = null;
       if (nextBag.every((p) => p === null)) {
-        const [a, b, c] = trio();
+        const [a, b, c] = trioForScore(score);
         return [a, b, c];
       }
       return nextBag;
     },
-    [bag]
+    [bag, score]
   );
 
   const tryPlaceAt = (x: number, y: number) => {
@@ -356,9 +367,30 @@ export default function BlockBlastGame() {
     nextBoard = clearedInfo.next;
 
     const cellsPlaced = selectedPiece.shape.length;
-    const lines = clearedInfo.cleared;
-    const lineBonus = lines > 0 ? 10 * lines * lines : 0;
-    setScore((s) => s + cellsPlaced + lineBonus);
+    const linesCleared = clearedInfo.cleared; // rows + cols this move
+
+    // --- New scoring model ---
+    // Base points for placing cells:
+    const base = cellsPlaced;
+
+    // Simultaneous multi-line bonus: strong reward for >1 line
+    const multiLineBonus =
+      linesCleared > 0
+        ? 25 * linesCleared + 12 * linesCleared * linesCleared
+        : 0;
+
+    // Combo: consecutive turns that clear ≥1 line increase multiplier
+    const newCombo = linesCleared > 0 ? combo + 1 : 0;
+    const comboBonus =
+      linesCleared > 0 ? newCombo * 30 * Math.max(1, linesCleared) : 0;
+
+    // Synergy: reward placing bigger shapes when they also clear
+    const shapeClearSynergy = linesCleared > 0 ? Math.floor(cellsPlaced * 2.5) : 0;
+
+    const gained = base + multiLineBonus + comboBonus + shapeClearSynergy;
+    setScore((s) => s + gained * SCORE_MULTIPLIER);
+    setCombo(newCombo);
+    setLastClear(linesCleared > 0);
 
     const newBag = consumeSlotAndMaybeRefill(selectedSlot);
     setBoard(nextBoard);
@@ -485,6 +517,12 @@ export default function BlockBlastGame() {
           animation: lineBlastRing ${BLAST_DURATION_MS}ms ease-out forwards;
           mix-blend-mode: screen;
         }
+
+        @keyframes pulse {
+          0% { transform: scale(0.96); opacity: 0.8; }
+          40% { transform: scale(1.04); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.95; }
+        }
       `}</style>
 
       {/* Width-synced column: header + board + tray share the same width */}
@@ -498,7 +536,7 @@ export default function BlockBlastGame() {
           width: "fit-content",
         }}
       >
-        {/* Header WITHOUT background; score is in a pill like the buttons */}
+        {/* Header */}
         <div style={{ alignSelf: "center", width: "100%" }}>
           <div
             style={{
@@ -521,20 +559,51 @@ export default function BlockBlastGame() {
               <IconTrophy />
               <span>Score: {score}</span>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={undo}
-                disabled={!history.length || gameOver}
-                style={btnStyle}
-                title="Undo"
+
+            {/* Difficulty + Combo + Actions */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div
+                style={{
+                  ...scorePillStyle,
+                  padding: "8px 12px",
+                  fontWeight: 800,
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  opacity: 0.95,
+                }}
+                title="Piece difficulty scales with score"
               >
-                <IconUndo />
-                Undo
-              </button>
-              <button onClick={reset} style={primaryBtnStyle} title="New Game">
-                <IconRestart />
-                New&nbsp;Game
-              </button>
+                Tier: {difficultyForScore(score)}
+              </div>
+              {combo > 0 && lastClear && (
+                <div
+                  style={{
+                    ...scorePillStyle,
+                    padding: "8px 12px",
+                    border: "1px solid rgba(34,197,94,0.45)",
+                    background: "rgba(34,197,94,0.18)",
+                    animation: "pulse 900ms ease-out",
+                  }}
+                  title="Consecutive clears boost your score"
+                >
+                  Combo ×{combo}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={undo}
+                  disabled={!history.length || gameOver}
+                  style={btnStyle}
+                  title="Undo"
+                >
+                  <IconUndo />
+                  Undo
+                </button>
+                <button onClick={reset} style={primaryBtnStyle} title="New Game">
+                  <IconRestart />
+                  New&nbsp;Game
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -616,7 +685,10 @@ export default function BlockBlastGame() {
                       ? withAlpha(top, 0.25)
                       : "rgba(255,255,255,0.06)",
                     boxShadow: filled
-                      ? `inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px ${withAlpha(bottom, 0.28)}`
+                      ? `inset 0 -2px 0 rgba(255,255,255,0.12), 0 4px 18px ${withAlpha(
+                          bottom,
+                          0.28
+                        )}`
                       : "none",
                     cursor:
                       (selectedPiece && !gameOver) || draggingSlot != null
