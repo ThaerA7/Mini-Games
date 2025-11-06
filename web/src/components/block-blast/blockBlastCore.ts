@@ -1,5 +1,5 @@
-// Pure types, config, shapes, and helpers for Block Blast.
-// UI components import from here.
+// blockBlastCore.ts
+// Pure types, config, shapes, helpers, and new difficulty-aware piece generation for Block Blast.
 
 export type Cell = 0 | number;         // 0 = empty, >0 = color index (1-based)
 export type Board = Cell[][];
@@ -9,8 +9,11 @@ export type Piece = { id: string; shape: Shape };
 export type SlotPiece = Piece | null;
 export type Snapshot = { board: Board; bag: SlotPiece[]; score: number };
 
+export type Difficulty = "Easy" | "Medium" | "Hard";
+
 /** --- Config / Styling --- */
 export const BOARD_SIZE = 9;
+export const SCORE_MULTIPLIER = 15;
 export const cellSize = "clamp(48px, 8.5vw, 72px)";
 export const lineGap = 3;
 export const lineColor = "rgba(0,0,0,0.9)";
@@ -115,6 +118,7 @@ export function emptyBoard(): Board {
   );
 }
 
+/** Legacy random (kept for compatibility) */
 export function randomPiece(): Piece {
   const idx = Math.floor(Math.random() * SHAPES.length);
   return { id: Math.random().toString(36).slice(2), shape: SHAPES[idx] };
@@ -196,4 +200,68 @@ export function shapeBounds(shape: Shape) {
   const maxX = Math.max(...shape.map((p) => p.x));
   const maxY = Math.max(...shape.map((p) => p.y));
   return { cols: maxX + 1, rows: maxY + 1 };
+}
+
+/** --- Difficulty & score-weighted piece generation --- */
+export const shapeSize = (s: Shape) => s.length;
+
+export function difficultyForScore(score: number): Difficulty {
+  if (score < 50000) return "Easy";
+  if (score < 100000) return "Medium";
+  return "Hard";
+}
+
+/**
+ * Pool of shapes unlocked for the given score.
+ * Easy: size ≤ 3 + 2x2 square
+ * Medium: adds most tetrominoes (size 4)
+ * Hard: emphasizes pentominoes (size ≥ 5) while keeping some variety
+ */
+export function piecePoolForScore(score: number): Shape[] {
+  const tier = difficultyForScore(score);
+  const all = SHAPES;
+
+  const easy = all.filter((sh) => {
+    const n = shapeSize(sh);
+    // include 2x2 square explicitly
+    const isSquare2x2 =
+      n === 4 &&
+      new Set(sh.map((p) => `${p.x},${p.y}`)).size === 4 &&
+      Math.max(...sh.map((p) => p.x)) === 1 &&
+      Math.max(...sh.map((p) => p.y)) === 1;
+    return n <= 3 || isSquare2x2;
+  });
+
+  const medium = all.filter((sh) => shapeSize(sh) === 4);
+  const hard = all.filter((sh) => shapeSize(sh) >= 5);
+
+  if (tier === "Easy") return easy;
+
+  if (tier === "Medium") {
+    // weighted mix (more medium, some easy, a hint of hard)
+    return [
+      ...easy, ...easy,
+      ...medium, ...medium, ...medium, ...medium,
+      ...hard // rare teaser
+    ];
+  }
+
+  // Hard: bias towards bigger/awkward shapes but keep variety
+  return [
+    ...easy,
+    ...medium, ...medium,
+    ...hard, ...hard, ...hard, ...hard
+  ];
+}
+
+/** Random piece from score-weighted pool */
+export function randomPieceForScore(score: number): Piece {
+  const pool = piecePoolForScore(score);
+  const idx = Math.floor(Math.random() * pool.length);
+  return { id: Math.random().toString(36).slice(2), shape: pool[idx] };
+}
+
+/** Trio based on score */
+export function trioForScore(score: number): Piece[] {
+  return [randomPieceForScore(score), randomPieceForScore(score), randomPieceForScore(score)];
 }
