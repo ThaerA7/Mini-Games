@@ -1,6 +1,7 @@
 import React from "react";
 import {
   // types
+  type Cell,
   type Board,
   type Piece,
   type SlotPiece,
@@ -65,7 +66,7 @@ function MiniPiece({
       {Array.from({ length: rows * cols }).map((_, i) => {
         const x = i % cols;
         const y = Math.floor(i / cols);
-        const filled = shape.some((p) => p.x === x && p.y === y);
+        const filled = shape.some((p: Point) => p.x === x && p.y === y);
         return (
           <div
             key={i}
@@ -124,7 +125,7 @@ function GrabbedPiece({
         {Array.from({ length: rows * cols }).map((_, i) => {
           const x = i % cols;
           const y = Math.floor(i / cols);
-          const filled = shape.some((p) => p.x === x && p.y === y);
+          const filled = shape.some((p: Point) => p.x === x && p.y === y);
           return (
             <div
               key={i}
@@ -285,9 +286,11 @@ export default function BlockBlastGame() {
     setHistory((h) => [
       ...h,
       {
-        board: board.map((r) => r.slice()) as Board,
-        bag: bag.map((p) =>
-          p ? { id: p.id, shape: p.shape.map((pt) => ({ ...pt })) } : null,
+        board: board.map((r: Cell[]) => r.slice()) as Board,
+        bag: bag.map((p: SlotPiece) =>
+          p
+            ? { id: p.id, shape: p.shape.map((pt: Point) => ({ ...pt })) }
+            : null,
         ),
         score,
       },
@@ -306,10 +309,12 @@ export default function BlockBlastGame() {
     setHistory((h) => {
       if (!h.length) return h;
       const last = h[h.length - 1];
-      setBoard(last.board.map((r) => r.slice()) as Board);
+      setBoard(last.board.map((r: Cell[]) => r.slice()) as Board);
       setBag(
-        last.bag.map((p) =>
-          p ? { id: p.id, shape: p.shape.map((pt) => ({ ...pt })) } : null,
+        last.bag.map((p: SlotPiece) =>
+          p
+            ? { id: p.id, shape: p.shape.map((pt: Point) => ({ ...pt })) }
+            : null,
         ),
       );
       setScore(last.score);
@@ -652,7 +657,7 @@ export default function BlockBlastGame() {
                 const topLeft = { x: hoverAt.x - ax, y: hoverAt.y - ay };
                 if (canPlace(board, selectedPieceLocal, topLeft)) {
                   ghost = selectedPieceLocal.shape.some(
-                    ({ x: dx, y: dy }) =>
+                    ({ x: dx, y: dy }: Point) =>
                       topLeft.x + dx === x && topLeft.y + dy === y,
                   );
                 }
