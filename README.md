@@ -1,73 +1,58 @@
-# React + TypeScript + Vite
+# Mini-Games Collection
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Just a bunch of fun browser games I built to procrastinate... I mean, to practice React and TypeScript 😄
 
-Currently, two official plugins are available:
+**⚠️ Work in Progress** - Still building and polishing things, so expect bugs and incomplete features!
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🎮 What's Inside?
 
-## React Compiler
+### Puzzle Stuff
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Sudoku** - You know what this is
+- **Killer Sudoku** - Sudoku but harder (you're welcome)
+- **Crossword** - Words in a grid, auto-generated and everything
+- **Block Blast** - Kinda like Tetris but different
 
-## Expanding the ESLint configuration
+### Memory Games (aka Brain Melters)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Visual Memory** - Spot the difference but with memory
+- **Sequence Memory** - Remember patterns that get stupidly long
+- **Chimp Test** - Can you beat a chimpanzee? Probably not
+- **Number Memory** - How many digits can you remember? Let's find out
 
-```js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
+### Geography Games (Test Your World Knowledge)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Flag Guess** - Name that flag!
+- **Map Shape Guess** - Guess countries from their shapes (harder than it sounds)
+- **Capital Guess** - Know your capitals or embarrass yourself trying
+- **Currency Guess** - What do they use in [random country]?
+- **Population Guess** - More people in India or Indonesia? 🤔
+- **Language Guess** - What language do they speak there?
+- **Emoji Country** - Because why not represent countries with emojis
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+## 🚀 Running This Thing
+
+You'll need Node.js and pnpm installed. Then just:
+
+```bash
+pnpm install    # grab the dependencies
+pnpm dev        # fire it up (usually on localhost:5173)
+pnpm build      # if you wanna deploy it somewhere
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🛠️ Built With
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
+React 19, TypeScript, Vite, and a bunch of other cool stuff like Zustand for state, Phaser for game logic, and D3 for the map games.
 
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+## 🧪 Tests
+
+Yeah there are tests:
+
+```bash
+pnpm test       # run 'em
+pnpm test:ui    # run 'em with a fancy UI
 ```
+
+## 📝 License
+
+MIT - do whatever you want with it ¯\\_(ツ)_/¯
